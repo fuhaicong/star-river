@@ -838,8 +838,8 @@ function animate(ts){
   const timeSinceInteraction=t-lastInteraction;
 
   if(!finaleTriggered){
-    // 累计交互时间
-    if(mouseActive)totalInteractionTime+=dt;
+    // 累计交互时间（鼠标动过就开始计时，不用一直动）
+    if(mouseActive||totalInteractionTime>0)totalInteractionTime+=dt;
 
     // 计算每个星座到鼠标的距离
     const dists={};
@@ -872,7 +872,7 @@ function animate(ts){
       hintEl.classList.remove('hide');
       hintEl.textContent='向那颗星靠近 ✦';
       // 鼠标穿过（进入范围）
-      if(mouseActive&&dists[aquarius.id]<180){
+      if(mouseActive&&dists[aquarius.id]<250){
         aquarius.discovered=true;activeDef=aquarius;activeShowTimer=0;
         updateStatus();showText(aquarius);
         flowState='firstDone';flowTimer=0;
@@ -896,7 +896,7 @@ function animate(ts){
     if(flowState==='secondAwaiting'){
       hintEl.classList.remove('hide');
       hintEl.textContent='出现了另一颗星，试试穿过她 ✦';
-      if(mouseActive&&dists[taurus.id]<180){
+      if(mouseActive&&dists[taurus.id]<250){
         taurus.discovered=true;activeDef=taurus;activeShowTimer=0;
         updateStatus();showText(taurus);
         flowState='done';flowTimer=0;
