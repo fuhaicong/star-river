@@ -5,1204 +5,983 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>星河漫游 · Star River Wander</title>
 <style>
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#020010;overflow:hidden;
+    font-family:"Noto Serif SC","STSong","Songti SC","KaiTi",serif;
+    -webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;
+    touch-action:none;user-select:none;-webkit-user-select:none;
+    height:100dvh;width:100vw;
+  }
+  canvas{display:block;position:fixed;top:0;left:0}
 
-  :root {
-    --bg-deep: #0a0a14;
-    --text-primary: rgba(255,255,255,0.92);
-    --text-gold: #ffd700;
-    --text-gold-dim: rgba(255,215,0,0.7);
+  /* 提示 */
+  #hint{
+    position:fixed;bottom:clamp(60px,12vh,100px);left:50%;transform:translateX(-50%);
+    z-index:20;pointer-events:none;
+    color:rgba(255,255,255,0.38);font-size:0.9rem;letter-spacing:0.35em;
+    transition:opacity 1s ease;
+  }
+  #hint.hide{opacity:0}
+
+  /* 星座文案 */
+  .cx-overlay{
+    position:fixed;z-index:20;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;
+    opacity:0;transform:translateY(16px);
+    transition:opacity 1.2s cubic-bezier(.22,.61,.36,1),
+               transform 1.2s cubic-bezier(.22,.61,.36,1);
+  }
+  .cx-overlay.on{opacity:1;transform:translateY(0)}
+  .cx-name{
+    font-size:clamp(1.5rem,3.8vw,2.2rem);
+    color:#ffd700;letter-spacing:0.35em;font-weight:400;
+    text-shadow:0 0 80px rgba(255,215,0,.3),0 0 160px rgba(255,215,0,.1);
+    margin-bottom:20px;
+  }
+  .cx-text{
+    font-size:clamp(.9rem,2vw,1.1rem);
+    color:rgba(255,255,255,.8);letter-spacing:.1em;line-height:1.9;
+    text-align:center;white-space:pre-line;
+    text-shadow:0 0 30px rgba(255,255,255,.12);
   }
 
-  body {
-    background: var(--bg-deep);
-    overflow: hidden;
-    font-family: "Noto Serif SC", "STSong", "Songti SC", "SimSun", "KaiTi", serif;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-font-smoothing: antialiased;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-    height: 100dvh;
-    width: 100vw;
+  /* 终章 */
+  #finale{
+    position:fixed;inset:0;z-index:30;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    opacity:0;transition:opacity 2.5s ease;
+  }
+  #finale.on{opacity:1}
+  #finale h2{
+    font-size:clamp(1.2rem,3.5vw,1.9rem);font-weight:400;
+    color:#ffd700;letter-spacing:.35em;text-align:center;
+    text-shadow:0 0 100px rgba(255,215,0,.35),0 0 200px rgba(255,215,0,.12);
+    margin-bottom:14px;
+  }
+  #finale p{
+    font-size:clamp(.8rem,1.6vw,.92rem);
+    color:rgba(255,255,255,.48);letter-spacing:.12em;text-align:center;
   }
 
-  canvas { display: block; position: fixed; top: 0; left: 0; }
-
-  /* ===== 覆盖层容器 ===== */
-  #overlay {
-    position: fixed; inset: 0; z-index: 10;
-    pointer-events: none;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-  }
-
-  /* ===== 提示文字 ===== */
-  #hint {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-    z-index: 11; pointer-events: none;
-    color: rgba(255,255,255,0.45);
-    font-size: 0.95rem; letter-spacing: 0.3em;
-    transition: opacity 0.8s ease;
-  }
-  #hint.fading { opacity: 0; }
-
-  /* ===== 星座文案覆盖层 ===== */
-  .constellation-overlay {
-    position: fixed; z-index: 12; pointer-events: none;
-    display: flex; flex-direction: column; align-items: center;
-    opacity: 0; transform: translateY(12px);
-    transition: opacity 1s cubic-bezier(0.22, 0.61, 0.36, 1),
-                transform 1s cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-  .constellation-overlay.visible {
-    opacity: 1; transform: translateY(0);
-  }
-
-  .constellation-name {
-    font-size: clamp(1.6rem, 4vw, 2.4rem);
-    color: var(--text-gold);
-    letter-spacing: 0.4em;
-    text-shadow: 0 0 60px rgba(255,215,0,0.25), 0 0 120px rgba(255,215,0,0.12);
-    margin-bottom: 24px;
-    font-weight: normal;
-  }
-
-  .constellation-text {
-    font-size: clamp(0.95rem, 2.2vw, 1.2rem);
-    color: rgba(255,255,255,0.82);
-    letter-spacing: 0.12em;
-    line-height: 2;
-    text-align: center;
-    white-space: pre-line;
-    text-shadow: 0 0 30px rgba(255,255,255,0.15);
-  }
-
-  /* ===== 终章覆盖层 ===== */
-  #finale-overlay {
-    position: fixed; inset: 0; z-index: 15; pointer-events: none;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 2s ease;
-  }
-  #finale-overlay.visible { opacity: 1; }
-
-  #finale-message {
-    font-size: clamp(1.4rem, 3.5vw, 2.2rem);
-    color: var(--text-gold);
-    letter-spacing: 0.35em;
-    text-align: center;
-    text-shadow: 0 0 80px rgba(255,215,0,0.3), 0 0 160px rgba(255,215,0,0.15);
-    margin-bottom: 18px;
-    font-weight: normal;
-  }
-
-  #finale-subtitle {
-    font-size: clamp(0.85rem, 1.8vw, 1rem);
-    color: rgba(255,255,255,0.55);
-    letter-spacing: 0.15em;
-    text-align: center;
-  }
-
-  /* ===== 发现计数 ===== */
-  #counter {
-    position: fixed; top: 36px; right: 28px; z-index: 11;
-    font-size: 0.78rem; color: rgba(255,255,255,0.28);
-    letter-spacing: 0.12em; pointer-events: none;
-    transition: opacity 0.6s;
+  /* 状态指示 */
+  #status{
+    position:fixed;top:30px;right:24px;z-index:20;pointer-events:none;
+    font-size:.7rem;color:rgba(255,255,255,.22);letter-spacing:.1em;
   }
 </style>
 </head>
 <body>
 
-<div id="overlay"></div>
-<div id="hint">轻触滑动 · 探索星河</div>
-<div id="counter"></div>
-
-<div id="finale-overlay">
-  <div id="finale-message"></div>
-  <div id="finale-subtitle"></div>
-</div>
+<div id="hint">轻触滑动 · 漫游星河</div>
+<div id="status"></div>
+<div id="finale"><h2></h2><p></p></div>
 
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
 </script>
 
 <script type="module">
-// ============================================================
-// 星河漫游 · Star River Wander
-// ============================================================
-
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-// ── 配置文件（在此修改个性化内容） ──────────────────────────
+// ═══════════════════════════════════════════════════════════
+// 个性化配置（只改这里）
+// ═══════════════════════════════════════════════════════════
 const C = {
-  name: '小脉',
-  finaleMessage: '{name}，你是我眼中最亮的星',
-  finaleSubtitle: '六一儿童节快乐 · 永远做我的小朋友',
-  constellations: [
-    { name: '初见', text: '那天遇见了{name}，\n整个星河都黯然失色。' },
-    { name: '温柔', text: '{name}的笑容，\n比极光还要温柔几分。' },
-    { name: '陪伴', text: '想和{name}一起，\n看遍宇宙所有的星光。' },
-    { name: '唯一', text: '在亿万星辰里，\n{name}是我唯一想遇见的那颗。' },
-    { name: '永恒', text: '时间会流逝，星辰会熄灭，\n但我对{name}的喜欢永远不会。' },
-  ],
-  particleCount: 2000,
-  trailLength: 30,
-  gravityRadius: 140,
-  formationDuration: 2.5,
-  displayDuration: 8,
-  bloomStrength: 1.3,
+  herName: '小脉',
+  herSign: '水瓶座 ♒',
+  hisSign: '金牛座 ♉',
+  herText: '你是水瓶座，\n是倾倒星河的水，\n是宇宙最自由的灵魂。',
+  hisText: '而我是金牛座，\n笨拙地守在你身边，\n做你最温柔的引力。',
+  finaleTitle: '两个星座 · 一片星空',
+  finaleSub: '六一儿童节快乐，{name}\n愿我们永远像孩子一样看星星',
 };
 
-// ── 工具函数 ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// 水瓶座 星图数据（归一化坐标，中心在原点）
+// ═══════════════════════════════════════════════════════════
+// 水瓶座主要恒星 + 连接线（水罐Y形 + 水流 + 身躯）
+const AQUARIUS_STARS = [
+  // 水罐 (Water Jar) - Y字形
+  { x: -0.15, y:  0.55, z: 0, mag: 3.8 }, // ζ Aqr  水罐顶中
+  { x: -0.45, y:  0.80, z: 0, mag: 4.0 }, // γ Aqr  水罐左上
+  { x:  0.15, y:  0.80, z: 0, mag: 3.6 }, // η Aqr  水罐右上
+  { x: -0.15, y:  0.20, z: 0, mag: 4.5 }, // π Aqr  水罐底 / 出水口
+  // 水流 (Water Stream)
+  { x: -0.25, y: -0.10, z: 0, mag: 4.3 },
+  { x: -0.05, y: -0.40, z: 0, mag: 4.6 },
+  { x: -0.35, y: -0.65, z: 0, mag: 4.4 },
+  { x:  0.05, y: -0.90, z: 0, mag: 4.8 },
+  { x: -0.20, y: -1.20, z: 0, mag: 5.0 },
+  // 头部/肩 (Head & Shoulders)
+  { x: -0.55, y:  0.50, z: 0, mag: 2.9 }, // α Aqr Sadalmelik 左肩(亮)
+  { x:  0.50, y:  0.55, z: 0, mag: 2.9 }, // β Aqr Sadalsuud  右肩(亮)
+  // 身躯 (Body)
+  { x:  0.00, y:  0.00, z: 0, mag: 4.2 }, // 躯干中心
+  { x: -0.20, y: -0.25, z: 0, mag: 4.1 },
+  { x:  0.20, y: -0.20, z: 0, mag: 4.5 },
+  // 腿 (Legs)
+  { x: -0.35, y: -0.55, z: 0, mag: 3.3 }, // δ Aqr Skat 左腿(亮)
+  { x:  0.30, y: -0.60, z: 0, mag: 4.3 }, // 右腿
+  // 手臂延伸
+  { x: -0.75, y:  0.15, z: 0, mag: 4.0 },
+  { x:  0.70, y:  0.20, z: 0, mag: 4.2 },
+];
+// 水瓶座连线（星索引对）
+const AQUARIUS_LINES = [
+  // 水罐 Y 形
+  [1,0],[2,0],[0,3],
+  // 水流
+  [3,4],[4,5],[5,6],[6,7],[7,8],
+  // 头到肩
+  [9,10],
+  // 左肩到身躯到右肩
+  [9,11],[10,11],
+  // 身躯到腿
+  [11,12],[11,13],
+  [12,14],[13,15],
+  // 手臂
+  [9,16],[10,17],
+];
+
+// ═══════════════════════════════════════════════════════════
+// 金牛座 星图数据
+// ═══════════════════════════════════════════════════════════
+const TAURUS_STARS = [
+  // 毕星团 V 形脸 (Hyades)
+  { x:  0.00, y:  0.35, z: 0, mag: 0.85 }, // α Tau Aldebaran 毕宿五(超亮, 橙红)
+  { x: -0.25, y:  0.00, z: 0, mag: 3.6 },  // γ Tau V左
+  { x:  0.00, y: -0.15, z: 0, mag: 3.8 },  // δ Tau V中下
+  { x:  0.25, y:  0.00, z: 0, mag: 3.5 },  // ε Tau V右
+  { x: -0.05, y: -0.40, z: 0, mag: 3.8 },  // θ Tau V底
+  // 左角 (Left Horn)
+  { x: -0.40, y:  0.30, z: 0, mag: 3.0 },  // 左角根
+  { x: -0.60, y:  0.70, z: 0, mag: 2.8 },  // 左角中
+  { x: -0.75, y:  1.15, z: 0, mag: 1.65 }, // β Tau Elnath 左角尖(亮)
+  // 右角 (Right Horn)
+  { x:  0.40, y:  0.25, z: 0, mag: 3.2 },  // 右角根
+  { x:  0.55, y:  0.65, z: 0, mag: 3.5 },
+  { x:  0.70, y:  1.05, z: 0, mag: 3.0 },  // ζ Tau 右角尖
+  // 昴星团 (Pleiades) - 右上紧凑星团
+  { x:  0.70, y:  0.80, z: 0.2, mag: 3.7 },
+  { x:  0.80, y:  0.72, z: 0.1, mag: 4.3 },
+  { x:  0.82, y:  0.88, z:-0.1, mag: 4.0 },
+  { x:  0.73, y:  0.90, z: 0.1, mag: 4.5 },
+  { x:  0.90, y:  0.82, z:-0.2, mag: 4.2 },
+  { x:  0.78, y:  0.78, z: 0.0, mag: 3.9 },
+  // 身躯延伸
+  { x: -0.15, y: -0.55, z: 0, mag: 4.2 },
+  { x:  0.15, y: -0.50, z: 0, mag: 4.5 },
+];
+const TAURUS_LINES = [
+  // V 形脸 (Aldebaran 是眼睛)
+  [0,1],[1,2],[2,3],[3,0],[2,4],
+  // 左角
+  [1,5],[5,6],[6,7],
+  // 右角
+  [3,8],[8,9],[9,10],
+  // 昴星团小连线
+  [11,12],[12,13],[13,14],[14,15],[15,11],[11,13],[12,15],
+  // 身躯
+  [4,16],[4,17],
+];
+
+// ═══════════════════════════════════════════════════════════
+// Three.js 初始化
+// ═══════════════════════════════════════════════════════════
 const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)
   || ('ontouchstart' in window && window.innerWidth < 1024);
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
 
-function processText(t) {
-  return t.replace(/\{name\}/g, C.name);
-}
-
-function easeOutBack(t) {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
-
-function easeInOutCubic(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-// ── 生成辉光纹理 ──────────────────────────────────────────
-function createGlowTexture(innerColor, outerColor, size = 128) {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, innerColor);
-  g.addColorStop(0.08, innerColor);
-  g.addColorStop(0.3, outerColor);
-  g.addColorStop(0.7, 'rgba(0,0,0,0)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(c);
-}
-
-// ── 生成星座形状点集 ─────────────────────────────────────
-function generateConstellationShape(type, pointCount = 160) {
-  const pts = [];
-  switch (type) {
-    case 'heart': {
-      for (let i = 0; i < pointCount; i++) {
-        const t = (i / pointCount) * Math.PI * 2;
-        const x = 16 * Math.pow(Math.sin(t), 3);
-        const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-        pts.push({ x: x * 0.08, y: y * 0.08 });
-      }
-      break;
-    }
-    case 'star': {
-      const spikes = 5;
-      const outerR = 1.2;
-      const innerR = 0.5;
-      for (let i = 0; i < pointCount; i++) {
-        const angle = (i / pointCount) * Math.PI * 2 - Math.PI / 2;
-        const segAngle = Math.PI * 2 / (spikes * 2);
-        const mod = ((i / pointCount * spikes * 2) % 2);
-        const r = mod < 1 ? outerR : innerR;
-        const fracInSeg = (angle % segAngle) / segAngle;
-        const rSmooth = outerR * (1 - fracInSeg) + innerR * fracInSeg;
-        const finalR = mod < 1 ? rSmooth : (innerR * fracInSeg + outerR * (1 - fracInSeg));
-        pts.push({ x: Math.cos(angle) * finalR, y: Math.sin(angle) * finalR });
-      }
-      break;
-    }
-    case 'infinity': {
-      for (let i = 0; i < pointCount; i++) {
-        const t = (i / pointCount) * Math.PI * 2;
-        const denom = 1 + Math.sin(t) * Math.sin(t);
-        pts.push({
-          x: Math.cos(t) / denom * 1.6,
-          y: (Math.sin(t) * Math.cos(t)) / denom * 1.6,
-        });
-      }
-      break;
-    }
-    case 'diamond': {
-      const verts = [
-        { x: 0, y: 1.4 }, { x: 1, y: 0 }, { x: 0, y: -1.4 }, { x: -1, y: 0 },
-      ];
-      for (let i = 0; i < pointCount; i++) {
-        const t = (i / pointCount) * 4;
-        const seg = Math.floor(t);
-        const frac = t - seg;
-        const a = verts[seg];
-        const b = verts[(seg + 1) % 4];
-        pts.push({ x: a.x + (b.x - a.x) * frac, y: a.y + (b.y - a.y) * frac });
-      }
-      break;
-    }
-    case 'crescent': {
-      for (let i = 0; i < pointCount; i++) {
-        const angle = (i / pointCount) * Math.PI * 2;
-        const r1 = 1.1;
-        const cx1 = 0, cy1 = 0;
-        const r2 = 0.75;
-        const cx2 = 0.35, cy2 = 0.15;
-        const x1 = cx1 + r1 * Math.cos(angle);
-        const y1 = cy1 + r1 * Math.sin(angle);
-        const d2 = Math.sqrt((x1 - cx2) ** 2 + (y1 - cy2) ** 2);
-        if (d2 < r2) {
-          const nx = (x1 - cx2) / d2;
-          const ny = (y1 - cy2) / d2;
-          pts.push({ x: cx2 + nx * r2, y: cy2 + ny * r2 });
-        } else {
-          pts.push({ x: x1, y: y1 });
-        }
-      }
-      break;
-    }
-    case 'flower': {
-      const petals = 6;
-      for (let i = 0; i < pointCount; i++) {
-        const angle = (i / pointCount) * Math.PI * 2;
-        const r = 0.7 + 0.45 * Math.cos(petals * angle);
-        pts.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
-      }
-      break;
-    }
-    default: { // circle
-      for (let i = 0; i < pointCount; i++) {
-        const a = (i / pointCount) * Math.PI * 2;
-        pts.push({ x: Math.cos(a) * 1.1, y: Math.sin(a) * 1.1 });
-      }
-    }
-  }
-  return pts;
-}
-
-// ── 文字 → 粒子位置（用于终章彩蛋） ─────────────────────────
-function textToPositions(text, fontSize, maxPoints) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 400;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${fontSize}px "Noto Serif SC", "STSong", "KaiTi", serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const pixels = imageData.data;
-  const bright = [];
-
-  // 采样亮像素
-  const step = 2; // 每隔几个像素采样
-  for (let y = 0; y < canvas.height; y += step) {
-    for (let x = 0; x < canvas.width; x += step) {
-      const idx = (y * canvas.width + x) * 4;
-      if (pixels[idx + 3] > 100) {
-        bright.push({
-          x: (x - canvas.width / 2) / canvas.width * 5,
-          y: -(y - canvas.height / 2) / canvas.height * 3,
-        });
-      }
-    }
-  }
-
-  // 随机采样 maxPoints 个点
-  const result = [];
-  const count = Math.min(maxPoints, bright.length);
-  for (let i = 0; i < count; i++) {
-    const idx = Math.floor(Math.random() * bright.length);
-    result.push(bright[idx]);
-    bright[idx] = bright[bright.length - 1];
-    bright.pop();
-  }
-  return result;
-}
-
-// ============================================================
-// Three.js 初始化
-// ============================================================
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x0a0a14);
+renderer.setSize(W(), H());
+renderer.setClearColor(0x020010);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.3;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  55, window.innerWidth / window.innerHeight, 0.1, 50,
-);
-camera.position.set(0, 0, 6.5);
+const camera = new THREE.PerspectiveCamera(58, W()/H(), 0.1, 30);
+camera.position.set(0, 0.3, 7);
 camera.lookAt(0, 0, 0);
 
-// ── 后处理 ──────────────────────────────────────────────
+// 后处理
 const composer = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(W(),H()), 1.2, 0.4, 0.85);
+bloom.renderToScreen = true;
+composer.addPass(bloom);
 
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  C.bloomStrength,
-  0.4,
-  0.85,
-);
-bloomPass.renderToScreen = true;
-composer.addPass(bloomPass);
+// ═══════════════════════════════════════════════════════════
+// 纹理生成
+// ═══════════════════════════════════════════════════════════
+function glowTex(r1,g1,b1,r2,g2,b2,size=128){
+  const c=document.createElement('canvas');c.width=c.height=size;
+  const ctx=c.getContext('2d');
+  const g=ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+  g.addColorStop(0,`rgba(${r1},${g1},${b1},1)`);
+  g.addColorStop(0.06,`rgba(${r1},${g1},${b1},.9)`);
+  g.addColorStop(0.25,`rgba(${r2},${g2},${b2},.5)`);
+  g.addColorStop(0.6,`rgba(${r2},${g2},${b2},.08)`);
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+  return new THREE.CanvasTexture(c);
+}
+const starTex = glowTex(255,255,255,170,200,255);
+const goldTex = glowTex(255,240,200,255,190,80);
+const warmTex = glowTex(255,220,180,255,150,60);
 
-// ============================================================
-// 极光光幕 (Aurora Shader)
-// ============================================================
-const auroraGeom = new THREE.PlaneGeometry(20, 12);
-const auroraMat = new THREE.ShaderMaterial({
-  uniforms: {
-    uTime: { value: 0 },
-    uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-    uOpacity: { value: 0.22 },
-  },
-  vertexShader: /* glsl */ `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: /* glsl */ `
-    varying vec2 vUv;
-    uniform float uTime;
-    uniform vec2 uResolution;
-    uniform float uOpacity;
+// ═══════════════════════════════════════════════════════════
+// 第1层：深空星云 (Nebula) - 多层平面 + 自定义shader
+// ═══════════════════════════════════════════════════════════
+const nebulaGroup = new THREE.Group();
+scene.add(nebulaGroup);
 
-    // Simple 2D noise
-    float hash(vec2 p) {
-      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-    }
-
-    float noise(vec2 p) {
-      vec2 i = floor(p);
-      vec2 f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      return mix(
-        mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
-        mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
-        f.y
-      );
-    }
-
-    float fbm(vec2 p) {
-      float v = 0.0;
-      float a = 0.5;
-      vec2 shift = vec2(100.0);
-      for (int i = 0; i < 5; i++) {
-        v += a * noise(p);
-        p = p * 2.0 + shift;
-        a *= 0.5;
+function createNebulaPlane(w,h,z,colors,opacity,speed){
+  const geom=new THREE.PlaneGeometry(w,h);
+  const mat=new THREE.ShaderMaterial({
+    uniforms:{
+      uTime:{value:0},
+      uColor1:{value:new THREE.Color(colors[0])},
+      uColor2:{value:new THREE.Color(colors[1])},
+      uColor3:{value:new THREE.Color(colors[2])},
+      uOpacity:{value:opacity},
+    },
+    vertexShader:/*glsl*/`
+      varying vec2 vUv;
+      void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}
+    `,
+    fragmentShader:/*glsl*/`
+      varying vec2 vUv;
+      uniform float uTime,uOpacity;
+      uniform vec3 uColor1,uColor2,uColor3;
+      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float noise(vec2 p){
+        vec2 i=floor(p),f=fract(p);
+        f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                   mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
       }
-      return v;
-    }
+      float fbm(vec2 p){
+        float v=0.0,a=.5;vec2 s=vec2(100.0);
+        for(int i=0;i<6;i++){v+=a*noise(p);p=p*2.0+s;a*=.5;}
+        return v;
+      }
+      void main(){
+        vec2 uv=vUv;
+        float t=uTime;
+        // 多层星云
+        float n1=fbm(uv*3.5+vec2(t*.06,sin(uv.x*2.0+t*.04)*.8));
+        float n2=fbm(uv*2.8-vec2(t*.05,cos(uv.y*2.5+t*.05)*.6));
+        float n3=fbm(uv*4.2+vec2(t*.03,-t*.04));
+        // 垂直渐变：上下暗、中间亮
+        float vy=smoothstep(0.0,.3,uv.y)*smoothstep(1.0,.7,uv.y);
+        float cloud=n1*.45+n2*.35+n3*.2;
+        cloud*=vy;
+        // 颜色混合
+        vec3 col=mix(uColor3,uColor2,smoothstep(.25,.5,cloud));
+        col=mix(col,uColor1,smoothstep(.45,.75,cloud));
+        float alpha=cloud*uOpacity;
+        gl_FragColor=vec4(col,alpha);
+      }
+    `,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  });
+  const mesh=new THREE.Mesh(geom,mat);
+  mesh.position.z=z;
+  mesh.userData={mat,speed};
+  return mesh;
+}
 
-    void main() {
-      vec2 uv = vUv;
-      float t = uTime * 0.08;
+// 3层星云
+const neb1=createNebulaPlane(18,10,-4.5,['#1a0a3e','#0d1b4e','#020818'],0.28,0.06);
+const neb2=createNebulaPlane(14,8,-3.5,['#0a1a3e','#120833','#010610'],0.22,0.05);
+const neb3=createNebulaPlane(12,7,-5.0,['#1e0c42','#0a1030','#030a20'],0.18,0.04);
+nebulaGroup.add(neb1,neb2,neb3);
 
-      // 多层极光波纹
-      float aurora1 = fbm(vec2(uv.x * 5.0 + t * 0.5, uv.y * 2.5 + sin(uv.x * 3.0 + t) * 1.2));
-      float aurora2 = fbm(vec2(uv.x * 3.5 - t * 0.35, uv.y * 3.0 + cos(uv.x * 2.5 + t * 0.7) * 0.8));
-      float aurora3 = fbm(vec2(uv.x * 4.2 + t * 0.25, uv.y * 1.8 + t * 0.4));
-
-      float aurora = aurora1 * 0.5 + aurora2 * 0.3 + aurora3 * 0.2;
-
-      // 垂直渐变：上半部分明显，下半部分淡出
-      float vFade = smoothstep(1.0, 0.15, uv.y) * smoothstep(0.0, 0.25, uv.y);
-
-      // 颜色混合：青色 → 紫色 → 深蓝
-      vec3 color1 = vec3(0.15, 0.55, 0.55); // 青绿
-      vec3 color2 = vec3(0.35, 0.18, 0.55); // 紫
-      vec3 color3 = vec3(0.08, 0.12, 0.35); // 深蓝
-
-      float colorMix = aurora * 1.5;
-      vec3 col = mix(color3, color2, smoothstep(0.2, 0.5, colorMix));
-      col = mix(col, color1, smoothstep(0.45, 0.7, colorMix));
-
-      float alpha = aurora * vFade * uOpacity;
-      gl_FragColor = vec4(col, alpha);
-    }
-  `,
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
+// ═══════════════════════════════════════════════════════════
+// 第2层：远景星空（深层，密集微小）
+// ═══════════════════════════════════════════════════════════
+const deepCount=isMobile?1500:3000;
+const deepGeom=new THREE.BufferGeometry();
+const deepPos=new Float32Array(deepCount*3);
+const deepCol=new Float32Array(deepCount*3);
+for(let i=0;i<deepCount;i++){
+  const i3=i*3;
+  // 球形分布，大半径
+  const theta=Math.random()*Math.PI*2,phi=Math.acos(2*Math.random()-1);
+  const r=6+Math.random()*8;
+  deepPos[i3]=Math.sin(phi)*Math.cos(theta)*r;
+  deepPos[i3+1]=Math.sin(phi)*Math.sin(theta)*r;
+  deepPos[i3+2]=Math.cos(phi)*r*.6-2;
+  // 冷色调为主
+  const temp=.6+Math.random()*.4;
+  deepCol[i3]=.7+.3*Math.random();         // r偏白
+  deepCol[i3+1]=.75+.25*Math.random();      // g
+  deepCol[i3+2]=.85+.15*Math.random();      // b偏蓝
+}
+deepGeom.setAttribute('position',new THREE.BufferAttribute(deepPos,3));
+deepGeom.setAttribute('color',new THREE.BufferAttribute(deepCol,3));
+const deepMat=new THREE.PointsMaterial({
+  map:starTex,size:.025,blending:THREE.AdditiveBlending,
+  depthWrite:false,vertexColors:true,transparent:true,opacity:.7,
 });
-const auroraMesh = new THREE.Mesh(auroraGeom, auroraMat);
-auroraMesh.position.z = -3;
-scene.add(auroraMesh);
+const deepStars=new THREE.Points(deepGeom,deepMat);
+scene.add(deepStars);
 
-// ============================================================
-// 星空粒子系统
-// ============================================================
-const PARTICLE_COUNT = isMobile ? Math.floor(C.particleCount / 2) : C.particleCount;
+// ═══════════════════════════════════════════════════════════
+// 第3层：主星场（中景，有漂移）
+// ═══════════════════════════════════════════════════════════
+const mainCount=isMobile?800:1800;
+const mainGeom=new THREE.BufferGeometry();
+const mainPos=new Float32Array(mainCount*3);
+const mainBase=new Float32Array(mainCount*3);
+const mainPhase=new Float32Array(mainCount);
+const mainSizes=new Float32Array(mainCount);
+const mainCol=new Float32Array(mainCount*3);
 
-const glowTex = createGlowTexture('rgba(255,255,255,1)', 'rgba(180,210,255,0.6)');
-const goldGlowTex = createGlowTexture('rgba(255,240,200,1)', 'rgba(255,200,100,0.5)');
-
-const starGeom = new THREE.BufferGeometry();
-const starPositions = new Float32Array(PARTICLE_COUNT * 3);
-const starBasePositions = new Float32Array(PARTICLE_COUNT * 3);
-const starPhases = new Float32Array(PARTICLE_COUNT);
-const starSizes = new Float32Array(PARTICLE_COUNT);
-const starColors = new Float32Array(PARTICLE_COUNT * 3);
-
-// 星星颜色池（白 / 蓝白 / 暖金）
-const colorPool = [
-  [1, 1, 1],
-  [0.85, 0.92, 1],
-  [0.78, 0.88, 1],
-  [0.95, 0.93, 1],
-  [0.9, 0.95, 1],
-  [1, 0.97, 0.82],
-  [1, 0.95, 0.88],
-  [0.82, 0.9, 1],
+const starColors=[
+  [1,.97,.88],[1,.95,.92],[.85,.92,1],[.9,.94,1],
+  [.78,.9,1],[.95,.9,.85],[.88,.93,1],[1,1,.95],
 ];
 
-for (let i = 0; i < PARTICLE_COUNT; i++) {
-  // 球体分布，偏向前面
-  const theta = Math.random() * Math.PI * 2;
-  const phi = Math.acos(2 * Math.random() - 1);
-  const radius = 2.5 + Math.random() * 5.5;
-
-  const i3 = i * 3;
-  starBasePositions[i3] = Math.sin(phi) * Math.cos(theta) * radius;
-  starBasePositions[i3 + 1] = Math.sin(phi) * Math.sin(theta) * radius;
-  starBasePositions[i3 + 2] = Math.cos(phi) * radius * 0.7 - 1;
-
-  starPositions[i3] = starBasePositions[i3];
-  starPositions[i3 + 1] = starBasePositions[i3 + 1];
-  starPositions[i3 + 2] = starBasePositions[i3 + 2];
-
-  starPhases[i] = Math.random() * Math.PI * 2;
-  starSizes[i] = 0.015 + Math.random() * 0.06;
-
-  const c = colorPool[Math.floor(Math.random() * colorPool.length)];
-  starColors[i3] = c[0];
-  starColors[i3 + 1] = c[1];
-  starColors[i3 + 2] = c[2];
+for(let i=0;i<mainCount;i++){
+  const i3=i*3;
+  const theta=Math.random()*Math.PI*2,phi=Math.acos(2*Math.random()-1);
+  const r=2.5+Math.random()*5;
+  mainBase[i3]=Math.sin(phi)*Math.cos(theta)*r;
+  mainBase[i3+1]=Math.sin(phi)*Math.sin(theta)*r;
+  mainBase[i3+2]=Math.cos(phi)*r*.5-1;
+  mainPos[i3]=mainBase[i3];mainPos[i3+1]=mainBase[i3+1];mainPos[i3+2]=mainBase[i3+2];
+  mainPhase[i]=Math.random()*Math.PI*2;
+  mainSizes[i]=.02+Math.random()*.055;
+  const c=starColors[Math.floor(Math.random()*starColors.length)];
+  mainCol[i3]=c[0];mainCol[i3+1]=c[1];mainCol[i3+2]=c[2];
 }
-
-starGeom.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-starGeom.setAttribute('size', new THREE.BufferAttribute(starSizes, 1));
-starGeom.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-
-const starMat = new THREE.PointsMaterial({
-  map: glowTex,
-  size: 0.08,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  vertexColors: true,
-  transparent: true,
-  opacity: 0.9,
+mainGeom.setAttribute('position',new THREE.BufferAttribute(mainPos,3));
+mainGeom.setAttribute('color',new THREE.BufferAttribute(mainCol,3));
+const mainMat=new THREE.PointsMaterial({
+  map:starTex,size:.065,blending:THREE.AdditiveBlending,
+  depthWrite:false,vertexColors:true,transparent:true,opacity:.85,
 });
+const mainStars=new THREE.Points(mainGeom,mainMat);
+scene.add(mainStars);
 
-const starfield = new THREE.Points(starGeom, starMat);
-scene.add(starfield);
+// ═══════════════════════════════════════════════════════════
+// 第4层：亮星（前景大颗，部分为星座星）
+// ═══════════════════════════════════════════════════════════
+const brightCount=80;
+const brightGeom=new THREE.BufferGeometry();
+const brightPos=new Float32Array(brightCount*3);
+const brightBase=new Float32Array(brightCount*3);
+const brightSizes=new Float32Array(brightCount);
 
-// ── 亮星层（少量大星点） ─────────────────────────────────
-const brightCount = 40;
-const brightGeom = new THREE.BufferGeometry();
-const brightPositions = new Float32Array(brightCount * 3);
-const brightSizes = new Float32Array(brightCount);
-const brightBasePos = new Float32Array(brightCount * 3);
-
-for (let i = 0; i < brightCount; i++) {
-  const i3 = i * 3;
-  brightBasePos[i3] = (Math.random() - 0.5) * 8;
-  brightBasePos[i3 + 1] = (Math.random() - 0.5) * 5;
-  brightBasePos[i3 + 2] = -1 - Math.random() * 3;
-  brightPositions[i3] = brightBasePos[i3];
-  brightPositions[i3 + 1] = brightBasePos[i3 + 1];
-  brightPositions[i3 + 2] = brightBasePos[i3 + 2];
-  brightSizes[i] = 0.06 + Math.random() * 0.12;
+for(let i=0;i<brightCount;i++){
+  const i3=i*3;
+  brightBase[i3]=(Math.random()-.5)*7;
+  brightBase[i3+1]=(Math.random()-.5)*4.5;
+  brightBase[i3+2]=-.5-Math.random()*3;
+  brightPos[i3]=brightBase[i3];brightPos[i3+1]=brightBase[i3+1];brightPos[i3+2]=brightBase[i3+2];
+  brightSizes[i]=.07+Math.random()*.14;
 }
-
-brightGeom.setAttribute('position', new THREE.BufferAttribute(brightPositions, 3));
-brightGeom.setAttribute('size', new THREE.BufferAttribute(brightSizes, 1));
-
-const brightMat = new THREE.PointsMaterial({
-  map: goldGlowTex,
-  size: 0.15,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  transparent: true,
-  opacity: 0.85,
-  color: new THREE.Color(0xffeedd),
+brightGeom.setAttribute('position',new THREE.BufferAttribute(brightPos,3));
+const brightMat=new THREE.PointsMaterial({
+  map:goldTex,size:.14,blending:THREE.AdditiveBlending,
+  depthWrite:false,transparent:true,opacity:.8,color:new THREE.Color('#ffe8d0'),
 });
-
-const brightStars = new THREE.Points(brightGeom, brightMat);
+const brightStars=new THREE.Points(brightGeom,brightMat);
 scene.add(brightStars);
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 流星系统
+// ═══════════════════════════════════════════════════════════
+const shootingStars=[];
+const MAX_SHOOTERS=3;
+
+function spawnShootingStar(){
+  const geom=new THREE.BufferGeometry();
+  const pts=[
+    new THREE.Vector3((Math.random()-.5)*8,1+Math.random()*3,-1-Math.random()*2),
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(0,0,0),
+  ];
+  // 方向：往左下或右下
+  const angle=-.3+(Math.random()-.5)*.6;
+  const len=.8+Math.random()*2;
+  pts[1].copy(pts[0]).add(new THREE.Vector3(Math.cos(angle)*len,Math.sin(angle)*len,0));
+  // 尾迹延长
+  pts[2].copy(pts[0]).add(new THREE.Vector3(Math.cos(angle+Math.PI)*.3,Math.sin(angle+Math.PI)*.3,0));
+  geom.setFromPoints(pts);
+  const mat=new THREE.LineBasicMaterial({
+    color:0xffffff,transparent:true,opacity:0,
+    blending:THREE.AdditiveBlending,depthWrite:false,
+  });
+  const line=new THREE.Line(geom,mat);
+  scene.add(line);
+  return{
+    line,mat,birth:performance.now()/1000,
+    duration:.4+.3*Math.random(),
+    start:pts[0].clone(),end:pts[1].clone(),
+    p0:pts[2].clone(),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// 星座系统 — 水瓶座 + 金牛座
+// ═══════════════════════════════════════════════════════════
+// 星座在3D空间中的位置
+const AQUARIUS_WORLD = new THREE.Vector3(-1.8, 0.3, -1.2);
+const TAURUS_WORLD   = new THREE.Vector3( 1.8, 0.0, -1.5);
+
+const constellationDefs = [
+  {
+    id:'aquarius', name:'水瓶座 ♒', text:C.herText.replace('{name}',C.herName),
+    stars:AQUARIUS_STARS, lines:AQUARIUS_LINES,
+    worldPos:AQUARIUS_WORLD, screenPos:new THREE.Vector2(),
+    discovered:false, owner:'her', scale:1.15,
+  },
+  {
+    id:'taurus', name:'金牛座 ♉', text:C.hisText,
+    stars:TAURUS_STARS, lines:TAURUS_LINES,
+    worldPos:TAURUS_WORLD, screenPos:new THREE.Vector2(),
+    discovered:false, owner:'him', scale:1.1,
+  },
+];
+
+// 星座渲染对象
+const constellationObjects=[]; // [{def, starPoints, lineGroup, glowMesh}]
+
+function createConstellationVisual(def){
+  const scale=def.scale;
+  const cx=def.worldPos.x,cy=def.worldPos.y,cz=def.worldPos.z;
+  const starCount=def.stars.length;
+
+  // 星座星点
+  const sGeom=new THREE.BufferGeometry();
+  const sPos=new Float32Array(starCount*3);
+  const sSizes=new Float32Array(starCount);
+  for(let i=0;i<starCount;i++){
+    const s=def.stars[i];
+    sPos[i*3]=cx+s.x*scale;
+    sPos[i*3+1]=cy+s.y*scale;
+    sPos[i*3+2]=cz+s.z*scale;
+    // 星等越小越亮，映射到尺寸
+    sSizes[i]=.03+.12/Math.max(1,s.mag);
+  }
+  sGeom.setAttribute('position',new THREE.BufferAttribute(sPos,3));
+  const isTaurus=def.id==='taurus';
+  const sMat=new THREE.PointsMaterial({
+    map:isTaurus?warmTex:starTex,
+    size:.12,blending:THREE.AdditiveBlending,depthWrite:false,
+    transparent:true,opacity:.35, // 初始暗淡
+    color:new THREE.Color(isTaurus?'#ffe0c0':'#d0e0ff'),
+  });
+  const starPoints=new THREE.Points(sGeom,sMat);
+  starPoints.userData.opacity=.35;
+  scene.add(starPoints);
+
+  // 连线
+  const lineGroup=new THREE.Group();
+  for(const [a,b] of def.lines){
+    const sa=def.stars[a],sb=def.stars[b];
+    const lGeom=new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(cx+sa.x*scale,cy+sa.y*scale,cz+sa.z*scale),
+      new THREE.Vector3(cx+sb.x*scale,cy+sb.y*scale,cz+sb.z*scale),
+    ]);
+    const lMat=new THREE.LineBasicMaterial({
+      color:isTaurus?0xffcc99:0xaaccff,
+      transparent:true,opacity:.15,
+      blending:THREE.AdditiveBlending,depthWrite:false,
+    });
+    const line=new THREE.Line(lGeom,lMat);
+    line.userData.opacity=.15;
+    lineGroup.add(line);
+  }
+  scene.add(lineGroup);
+
+  // 中心辉光
+  const glowGeom=new THREE.PlaneGeometry(2*scale,2*scale);
+  const glowMat=new THREE.ShaderMaterial({
+    uniforms:{
+      uColor:{value:new THREE.Color(isTaurus?'#ff9944':'#4488ff')},
+      uOpacity:{value:.06},
+    },
+    vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:`varying vec2 vUv;uniform vec3 uColor;uniform float uOpacity;
+      void main(){
+        float d=length(vUv-.5)*2.0;
+        float a=smoothstep(1.0,0.0,d)*uOpacity;
+        gl_FragColor=vec4(uColor,a);
+      }`,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  });
+  const glowMesh=new THREE.Mesh(glowGeom,glowMat);
+  glowMesh.position.copy(def.worldPos);
+  glowMesh.userData.opacity=.06;
+  scene.add(glowMesh);
+
+  return {def,starPoints,lineGroup,glowMesh,sPos,sSizes,sMat};
+}
+
+for(const def of constellationDefs){
+  constellationObjects.push(createConstellationVisual(def));
+}
+
+// ═══════════════════════════════════════════════════════════
 // 拖尾系统
-// ============================================================
-const trailPoints = [];
-const MAX_TRAIL = C.trailLength;
-
-const trailGeom = new THREE.BufferGeometry();
-const trailPositionsArr = new Float32Array(MAX_TRAIL * 3);
-trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositionsArr, 3));
-trailGeom.setDrawRange(0, 0);
-
-const trailMat = new THREE.LineBasicMaterial({
-  color: 0xaaccff,
-  transparent: true,
-  opacity: 0.55,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  linewidth: 1,
+// ═══════════════════════════════════════════════════════════
+const MAX_TRAIL=35;
+const trailPts=[];
+const trailGeom=new THREE.BufferGeometry();
+const trailArr=new Float32Array(MAX_TRAIL*3);
+trailGeom.setAttribute('position',new THREE.BufferAttribute(trailArr,3));
+trailGeom.setDrawRange(0,0);
+const trailMat=new THREE.LineBasicMaterial({
+  color:0x88bbff,transparent:true,opacity:.5,
+  blending:THREE.AdditiveBlending,depthWrite:false,
 });
-
-const trailLine = new THREE.Line(trailGeom, trailMat);
+const trailLine=new THREE.Line(trailGeom,trailMat);
 scene.add(trailLine);
 
-// ── 拖尾光点 ─────────────────────────────────────────────
-const trailDotGeom = new THREE.BufferGeometry();
-const trailDotPositions = new Float32Array(MAX_TRAIL * 3);
-const trailDotSizes = new Float32Array(MAX_TRAIL);
-trailDotGeom.setAttribute('position', new THREE.BufferAttribute(trailDotPositions, 3));
-trailDotGeom.setAttribute('size', new THREE.BufferAttribute(trailDotSizes, 1));
-trailDotGeom.setDrawRange(0, 0);
-
-const trailDotMat = new THREE.PointsMaterial({
-  map: glowTex,
-  size: 0.06,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  transparent: true,
-  opacity: 0.7,
-  color: new THREE.Color(0xaaccff),
+// 拖尾光点
+const tDotGeom=new THREE.BufferGeometry();
+const tDotPos=new Float32Array(MAX_TRAIL*3);
+const tDotSz=new Float32Array(MAX_TRAIL);
+tDotGeom.setAttribute('position',new THREE.BufferAttribute(tDotPos,3));
+tDotGeom.setAttribute('size',new THREE.BufferAttribute(tDotSz,1));
+tDotGeom.setDrawRange(0,0);
+const tDotMat=new THREE.PointsMaterial({
+  map:starTex,size:.05,blending:THREE.AdditiveBlending,
+  depthWrite:false,transparent:true,opacity:.65,color:new THREE.Color(0x88bbff),
 });
-
-const trailDots = new THREE.Points(trailDotGeom, trailDotMat);
+const trailDots=new THREE.Points(tDotGeom,tDotMat);
 scene.add(trailDots);
 
-// ============================================================
-// 星座系统
-// ============================================================
-const shapeTypes = ['heart', 'star', 'infinity', 'diamond', 'crescent', 'flower', 'circle'];
-const constellationDefs = C.constellations.map((c, i) => {
-  const shapeType = shapeTypes[i % shapeTypes.length];
-  const shapePoints = generateConstellationShape(shapeType, 150);
-  return {
-    ...c,
-    text: processText(c.text),
-    shape: shapePoints,
-    shapeType,
-    // 引力点在 3D 空间中的位置
-    worldPos: new THREE.Vector3(
-      (Math.random() - 0.5) * 5,
-      (Math.random() - 0.5) * 3.5,
-      -0.5 - Math.random() * 2.5,
-    ),
-    // 屏幕空间位置（每帧更新）
-    screenPos: new THREE.Vector2(),
-    discovered: false,
-  };
-});
+// ═══════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════
+const hintEl=document.getElementById('hint');
+const statusEl=document.getElementById('status');
+const finaleEl=document.getElementById('finale');
+let currentOverlay=null;
 
-// 当前激活的星座（null 表示没有）
-let activeConstellation = null;
-// 星座形成动画状态
-let formAnim = null; // { def, particles: [], startPos: Float32Array, targetPos: Float32Array, progress, lineObj }
-
-// 连接线对象池
-const constellationLines = new THREE.Group();
-scene.add(constellationLines);
-
-// ── 为每个星座预分配参与粒子 ────────────────────────────
-function findNearestParticles(worldPos, count) {
-  const distances = [];
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const i3 = i * 3;
-    const dx = starPositions[i3] - worldPos.x;
-    const dy = starPositions[i3 + 1] - worldPos.y;
-    const dz = starPositions[i3 + 2] - worldPos.z;
-    distances.push({ i, d: dx * dx + dy * dy + dz * dz });
-  }
-  distances.sort((a, b) => a.d - b.d);
-  return distances.slice(0, count).map(d => d.i);
+function updateStatus(){
+  const found=constellationDefs.filter(d=>d.discovered).length;
+  statusEl.textContent=`✦ ${found}/2`;
 }
 
-// ── 创建星座连接线 ──────────────────────────────────────
-function createConstellationLines(shape2D, worldCenter) {
-  const step = Math.max(1, Math.floor(shape2D.length / 60)); // 每隔 N 个点连线
-  const linePts = [];
-  for (let i = 0; i < shape2D.length; i += step) {
-    linePts.push(new THREE.Vector3(
-      worldCenter.x + shape2D[i].x,
-      worldCenter.y + shape2D[i].y,
-      worldCenter.z,
-    ));
-  }
-  // 闭合
-  if (linePts.length > 2) {
-    linePts.push(linePts[0].clone());
-  }
-
-  const geom = new THREE.BufferGeometry().setFromPoints(linePts);
-  const mat = new THREE.LineBasicMaterial({
-    color: 0xffd700,
-    transparent: true,
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  });
-  const line = new THREE.Line(geom, mat);
-  constellationLines.add(line);
-  return line;
+function showText(def){
+  hideText();
+  const el=document.createElement('div');
+  el.className='cx-overlay';
+  // 放在星座屏幕位置附近
+  const sy=def.screenPos.y;
+  el.style.top=Math.max(30,sy-120)+'px';
+  el.style.left='50%';
+  el.innerHTML=`<div class="cx-name">${def.name}</div><div class="cx-text">${def.text}</div>`;
+  document.body.appendChild(el);
+  currentOverlay=el;
+  requestAnimationFrame(()=>el.classList.add('on'));
 }
-
-// ============================================================
-// UI 管理
-// ============================================================
-const overlay = document.getElementById('overlay');
-const hintEl = document.getElementById('hint');
-const counterEl = document.getElementById('counter');
-const finaleOverlay = document.getElementById('finale-overlay');
-const finaleMsg = document.getElementById('finale-message');
-const finaleSub = document.getElementById('finale-subtitle');
-
-let currentTextOverlay = null;
-
-function updateCounter() {
-  const found = constellationDefs.filter(d => d.discovered).length;
-  const total = constellationDefs.length;
-  counterEl.textContent = `✦ ${found}/${total}`;
-}
-
-function showConstellationText(def, screenY) {
-  hideConstellationText();
-
-  const el = document.createElement('div');
-  el.className = 'constellation-overlay';
-  el.style.top = Math.max(10, screenY - 100) + 'px';
-  el.style.left = '50%';
-  el.style.transform = 'translate(-50%, 12px)';
-
-  el.innerHTML = `
-    <div class="constellation-name">${def.name}</div>
-    <div class="constellation-text">${def.text}</div>
-  `;
-
-  overlay.appendChild(el);
-  currentTextOverlay = el;
-
-  requestAnimationFrame(() => {
-    el.classList.add('visible');
-  });
-}
-
-function hideConstellationText() {
-  if (currentTextOverlay) {
-    currentTextOverlay.classList.remove('visible');
-    const el = currentTextOverlay;
-    setTimeout(() => el.remove(), 1000);
-    currentTextOverlay = null;
+function hideText(){
+  if(currentOverlay){
+    currentOverlay.classList.remove('on');
+    const el=currentOverlay;
+    setTimeout(()=>el.remove(),1200);
+    currentOverlay=null;
   }
 }
 
-// ============================================================
-// 状态机
-// ============================================================
-const State = {
-  IDLE: 'idle',
-  EXPLORING: 'exploring',
-  FORMING: 'forming',
-  SHOWING: 'showing',
-  FINALE: 'finale',
-};
+// ═══════════════════════════════════════════════════════════
+// 交互状态
+// ═══════════════════════════════════════════════════════════
+let mouseWorld=new THREE.Vector3();
+let mouseActive=false;
+let mouseNDC=new THREE.Vector2();
+let lastInteraction=0;
+let activatingDef=null;     // 正在靠近的星座
+let activationTimer=0;
+let activeDef=null;         // 已激活展示中的星座
+let showTimer=0;
+let finaleTriggered=false;
+let finalePhase=0;          // 0=waiting, 1=converge, 2=spin, 3=burst, 4=form, 5=done
+let finaleStart=0;
 
-let state = State.IDLE;
-let stateTimer = 0;
-let mouseWorld = new THREE.Vector3();
-let mouseActive = false;
-let lastInteractionTime = 0;
-let finaleTriggered = false;
-
-// ============================================================
-// 世界坐标转换
-// ============================================================
-function screenToWorld(screenX, screenY) {
-  const ndc = new THREE.Vector3(
-    (screenX / window.innerWidth) * 2 - 1,
-    -(screenY / window.innerHeight) * 2 + 1,
-    0.5,
-  );
+function screenToWorld(sx,sy){
+  const ndc=new THREE.Vector3((sx/W())*2-1,-(sy/H())*2+1,.5);
   ndc.unproject(camera);
-  const dir = ndc.clone().sub(camera.position).normalize();
-  const dist = -camera.position.z / dir.z;
+  const dir=ndc.clone().sub(camera.position).normalize();
+  const dist=-camera.position.z/dir.z;
   return camera.position.clone().add(dir.multiplyScalar(dist));
 }
 
-// ============================================================
-// 事件处理
-// ============================================================
-const mouseNDC = new THREE.Vector2();
-
-function onPointerMove(x, y) {
-  mouseActive = true;
-  lastInteractionTime = performance.now() / 1000;
-
-  const world = screenToWorld(x, y);
-  mouseWorld.copy(world);
-
-  // 更新拖尾
-  trailPoints.push(world.clone());
-  while (trailPoints.length > MAX_TRAIL) trailPoints.shift();
-
-  // 更新鼠标 NDC
-  mouseNDC.x = (x / window.innerWidth) * 2 - 1;
-  mouseNDC.y = -(y / window.innerHeight) * 2 + 1;
+// ═══════════════════════════════════════════════════════════
+// 事件
+// ═══════════════════════════════════════════════════════════
+function onMove(x,y){
+  mouseActive=true;lastInteraction=performance.now()/1000;
+  mouseWorld.copy(screenToWorld(x,y));
+  trailPts.push(mouseWorld.clone());
+  while(trailPts.length>MAX_TRAIL)trailPts.shift();
+  mouseNDC.set((x/W())*2-1,-(y/H())*2+1);
 }
+function onUp(){mouseActive=false;}
 
-function onPointerUp() {
-  mouseActive = false;
-}
-
-window.addEventListener('mousemove', e => onPointerMove(e.clientX, e.clientY));
-window.addEventListener('touchmove', e => {
-  e.preventDefault();
-  onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-}, { passive: false });
-window.addEventListener('mouseup', onPointerUp);
-window.addEventListener('touchend', onPointerUp);
-window.addEventListener('touchcancel', onPointerUp);
-
-// ── 窗口大小响应 ──────────────────────────────────────────
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
-  bloomPass.resolution.set(window.innerWidth, window.innerHeight);
-  auroraMat.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+window.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
+window.addEventListener('touchmove',e=>{e.preventDefault();onMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+window.addEventListener('mouseup',onUp);
+window.addEventListener('touchend',onUp);
+window.addEventListener('touchcancel',onUp);
+window.addEventListener('resize',()=>{
+  camera.aspect=W()/H();camera.updateProjectionMatrix();
+  renderer.setSize(W(),H());composer.setSize(W(),H());
+  bloom.resolution.set(W(),H());
 });
 
-// ============================================================
+updateStatus();
+
+// ═══════════════════════════════════════════════════════════
 // 主循环
-// ============================================================
-const clock = new THREE.Clock();
-updateCounter();
+// ═══════════════════════════════════════════════════════════
+const clock=new THREE.Clock();
 
-function animate(timestamp) {
+function animate(ts){
   requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.1);
+  const t=ts*.001;
 
-  const dt = Math.min(clock.getDelta(), 0.1);
-  const time = timestamp * 0.001;
+  // ── 星云动画 ──────────────────────────────────────────
+  for(const neb of nebulaGroup.children){
+    neb.userData.mat.uniforms.uTime.value=t;
+  }
 
-  stateTimer += dt;
+  // ── 远景微转 ──────────────────────────────────────────
+  deepStars.rotation.y+=dt*.015;
+  deepStars.rotation.x+=dt*.006;
 
-  // ── 更新极光 ──────────────────────────────────────────
-  auroraMat.uniforms.uTime.value = time;
-
-  // ── 更新星星（漂移 + 鼠标亮度） ────────────────────────
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const i3 = i * 3;
-    // 仅在非星座动画时漂移
-    if (state !== State.FINALE && (!formAnim || !formAnim.particles.includes(i))) {
-      const phase = starPhases[i];
-      starPositions[i3] = starBasePositions[i3]
-        + Math.sin(time * 0.4 + phase) * 0.06
-        + Math.cos(time * 0.65 + phase * 1.7) * 0.04;
-      starPositions[i3 + 1] = starBasePositions[i3 + 1]
-        + Math.cos(time * 0.5 + phase) * 0.06
-        + Math.sin(time * 0.55 + phase * 1.3) * 0.04;
-      starPositions[i3 + 2] = starBasePositions[i3 + 2]
-        + Math.sin(time * 0.35 + phase) * 0.03;
+  // ── 主星漂移 ──────────────────────────────────────────
+  for(let i=0;i<mainCount;i++){
+    const i3=i*3;
+    if(!finaleTriggered){ // 终章期间完全由终章逻辑控制粒子
+      const ph=mainPhase[i];
+      mainPos[i3]=mainBase[i3]+Math.sin(t*.35+ph)*.07+Math.cos(t*.55+ph*1.7)*.04;
+      mainPos[i3+1]=mainBase[i3+1]+Math.cos(t*.4+ph)*.07+Math.sin(t*.45+ph*1.3)*.04;
+      mainPos[i3+2]=mainBase[i3+2]+Math.sin(t*.28+ph)*.03;
     }
   }
-  starGeom.attributes.position.needsUpdate = true;
+  mainGeom.attributes.position.needsUpdate=true;
 
-  // ── 更新亮星 ──────────────────────────────────────────
-  for (let i = 0; i < brightCount; i++) {
-    const i3 = i * 3;
-    brightPositions[i3] = brightBasePos[i3] + Math.sin(time * 0.3 + i) * 0.1;
-    brightPositions[i3 + 1] = brightBasePos[i3 + 1] + Math.cos(time * 0.35 + i) * 0.1;
-    brightPositions[i3 + 2] = brightBasePos[i3 + 2] + Math.sin(time * 0.25 + i) * 0.05;
-    brightSizes[i] = (0.06 + Math.random() * 0.01) + Math.sin(time * 2 + i) * 0.02;
+  // ── 亮星 ──────────────────────────────────────────────
+  for(let i=0;i<brightCount;i++){
+    const i3=i*3;
+    brightPos[i3]=brightBase[i3]+Math.sin(t*.25+i)*.12;
+    brightPos[i3+1]=brightBase[i3+1]+Math.cos(t*.3+i)*.12;
+    brightPos[i3+2]=brightBase[i3+2]+Math.sin(t*.2+i)*.06;
   }
-  brightGeom.attributes.position.needsUpdate = true;
-  brightGeom.attributes.size.needsUpdate = true;
+  brightGeom.attributes.position.needsUpdate=true;
 
-  // ── 更新拖尾 ──────────────────────────────────────────
-  if (!mouseActive && trailPoints.length > 0) {
-    // 逐渐缩短拖尾
-    if (stateTimer % 0.05 < dt) trailPoints.shift();
+  // ── 拖尾 ──────────────────────────────────────────────
+  if(!mouseActive&&trailPts.length>0&&Math.random()<.3)trailPts.shift();
+  const tl=trailPts.length;
+  trailGeom.setDrawRange(0,tl);tDotGeom.setDrawRange(0,tl);
+  for(let i=0;i<tl;i++){
+    const i3=i*3,p=trailPts[i];
+    trailArr[i3]=p.x;trailArr[i3+1]=p.y;trailArr[i3+2]=p.z;
+    tDotPos[i3]=p.x;tDotPos[i3+1]=p.y;tDotPos[i3+2]=p.z;
+    tDotSz[i]=.02+((i+1)/tl)*.08;
   }
-
-  const trailLen = trailPoints.length;
-  trailGeom.setDrawRange(0, trailLen);
-  trailDotGeom.setDrawRange(0, trailLen);
-
-  for (let i = 0; i < trailLen; i++) {
-    const i3 = i * 3;
-    const pt = trailPoints[i];
-    trailPositionsArr[i3] = pt.x;
-    trailPositionsArr[i3 + 1] = pt.y;
-    trailPositionsArr[i3 + 2] = pt.z;
-    trailDotPositions[i3] = pt.x;
-    trailDotPositions[i3 + 1] = pt.y;
-    trailDotPositions[i3 + 2] = pt.z;
-    // 越新的点越大、越不透明
-    const age = (trailLen - 1 - i) / MAX_TRAIL;
-    trailDotSizes[i] = 0.02 + (1 - age) * 0.07;
-  }
-  if (trailLen > 0) {
-    trailGeom.attributes.position.needsUpdate = true;
-    trailDotGeom.attributes.position.needsUpdate = true;
-    trailDotGeom.attributes.size.needsUpdate = true;
-
-    // 整体透明度随拖尾衰减
-    const fade = Math.min(1, trailLen / 5);
-    trailMat.opacity = 0.45 * fade;
-    trailDotMat.opacity = 0.6 * fade;
+  if(tl>0){
+    trailGeom.attributes.position.needsUpdate=true;
+    tDotGeom.attributes.position.needsUpdate=true;
+    if(tDotGeom.attributes.size){tDotGeom.attributes.size.needsUpdate=true;}
+    trailMat.opacity=.4*Math.min(1,tl/6);
+    tDotMat.opacity=.55*Math.min(1,tl/6);
   }
 
-  // ── 更新星座屏幕位置 ──────────────────────────────────
-  for (const def of constellationDefs) {
-    const sp = def.worldPos.clone().project(camera);
-    def.screenPos.set(
-      (sp.x * 0.5 + 0.5) * window.innerWidth,
-      (-sp.y * 0.5 + 0.5) * window.innerHeight,
-    );
+  // ── 流星 ──────────────────────────────────────────────
+  // 随机生成
+  if(shootingStars.length<MAX_SHOOTERS&&Math.random()<.008&&mouseActive){
+    shootingStars.push(spawnShootingStar());
+  }
+  for(let i=shootingStars.length-1;i>=0;i--){
+    const ss=shootingStars[i];
+    const age=t-ss.birth;
+    const p=age/ss.duration;
+    if(p>1){scene.remove(ss.line);ss.line.geometry.dispose();ss.mat.dispose();shootingStars.splice(i,1);continue;}
+    // 淡入 → 亮 → 淡出
+    ss.mat.opacity=p<.15?p/.15*.7:p>.7?(1-p)/.3*.7:.7;
+    // 沿轨迹移动头尾
+    const head=new THREE.Vector3().lerpVectors(ss.start,ss.end,p);
+    const tail=new THREE.Vector3().lerpVectors(ss.p0,ss.end,Math.max(0,p-.25));
+    const geom=new THREE.BufferGeometry().setFromPoints([tail,head]);
+    ss.line.geometry.dispose();
+    ss.line.geometry=geom;
   }
 
-  // ── 状态机逻辑 ────────────────────────────────────────
-  const timeSinceInteraction = time - lastInteractionTime;
-
-  if (state === State.IDLE) {
-    if (mouseActive && trailPoints.length > 5) {
-      state = State.EXPLORING;
-      hintEl.classList.add('fading');
-    } else if (timeSinceInteraction > 3) {
-      hintEl.classList.remove('fading');
-    }
+  // ── 星座屏幕位置更新 ───────────────────────────────────
+  for(const def of constellationDefs){
+    const sp=def.worldPos.clone().project(camera);
+    def.screenPos.set((sp.x*.5+.5)*W(),(-sp.y*.5+.5)*H());
   }
 
-  if (state === State.EXPLORING || state === State.IDLE) {
-    // 检测是否靠近未发现的星座引力点
-    if (mouseActive && !activeConstellation && !formAnim) {
-      for (const def of constellationDefs) {
-        if (def.discovered) continue;
-        const dx = mouseNDC.x * window.innerWidth / 2 - (def.screenPos.x - window.innerWidth / 2);
-        const dy = mouseNDC.y * window.innerHeight / 2 - (def.screenPos.y - window.innerHeight / 2);
-        const screenDist = Math.sqrt(dx * dx + dy * dy);
+  // ── 星座检测 & 状态机 ─────────────────────────────────
+  const timeSinceInteraction=t-lastInteraction;
 
-        if (screenDist < C.gravityRadius) {
-          // 开始形成星座
-          state = State.FORMING;
-          activeConstellation = def;
-          stateTimer = 0;
-
-          // 选择附近的粒子
-          const particleIndices = findNearestParticles(def.worldPos, 160);
-
-          // 存储起始位置
-          const startPos = new Float32Array(particleIndices.length * 3);
-          const targetPosArr = new Float32Array(particleIndices.length * 3);
-
-          for (let j = 0; j < particleIndices.length; j++) {
-            const pi = particleIndices[j];
-            const pi3 = pi * 3;
-            const j3 = j * 3;
-            startPos[j3] = starPositions[pi3];
-            startPos[j3 + 1] = starPositions[pi3 + 1];
-            startPos[j3 + 2] = starPositions[pi3 + 2];
-
-            const shapePt = def.shape[j % def.shape.length];
-            targetPosArr[j3] = def.worldPos.x + shapePt.x;
-            targetPosArr[j3 + 1] = def.worldPos.y + shapePt.y;
-            targetPosArr[j3 + 2] = def.worldPos.z;
+  if(!finaleTriggered){
+    if(!activeDef&&!activatingDef){
+      // 检测是否靠近星座
+      let nearest=null,nearestDist=Infinity;
+      if(mouseActive){
+        for(const def of constellationDefs){
+          if(def.discovered)continue;
+          const dx=mouseNDC.x*W()/2-(def.screenPos.x-W()/2);
+          const dy=mouseNDC.y*H()/2-(def.screenPos.y-H()/2);
+          const d=Math.sqrt(dx*dx+dy*dy);
+          if(d<180&&d<nearestDist){nearest=def;nearestDist=d;}
+        }
+      }
+      if(nearest&&nearestDist<140){
+        if(activatingDef===nearest){
+          activationTimer+=dt;
+          if(activationTimer>1.2){
+            // 激活星座！
+            nearest.discovered=true;
+            activeDef=nearest;
+            showTimer=0;
+            updateStatus();
+            showText(nearest);
+            activatingDef=null;activationTimer=0;
           }
+        }else{
+          activatingDef=nearest;activationTimer=0;
+        }
+      }else{
+        activatingDef=null;activationTimer=0;
+      }
+    }
 
-          // 创建预览连接线
-          const lineObj = createConstellationLines(def.shape, def.worldPos);
-
-          formAnim = {
-            def,
-            particles: particleIndices,
-            startPos,
-            targetPos: targetPosArr,
-            progress: 0,
-            lineObj,
-          };
-          break;
+    if(activeDef){
+      showTimer+=dt;
+      const dx=mouseActive?mouseNDC.x*W()/2-(activeDef.screenPos.x-W()/2):0;
+      const dy=mouseActive?mouseNDC.y*H()/2-(activeDef.screenPos.y-H()/2):0;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(showTimer>10||(mouseActive&&d>280&&showTimer>2.5)){
+        // 淡出
+        hideText();
+        activeDef=null;showTimer=0;
+        // 检查全部发现
+        if(constellationDefs.every(d=>d.discovered)){
+          finaleTriggered=true;finalePhase=0;finaleStart=t;
+          hintEl.classList.add('hide');
         }
       }
     }
 
-    // 如果长时间未交互，回到 IDLE
-    if (state === State.EXPLORING && !mouseActive && timeSinceInteraction > 2) {
-      state = State.IDLE;
+    // 提示
+    if(constellationDefs.some(d=>d.discovered))hintEl.classList.add('hide');
+    else if(timeSinceInteraction>4)hintEl.classList.remove('hide');
+    else if(mouseActive&&trailPts.length>3)hintEl.classList.add('hide');
+  }
+
+  // ── 星座视觉更新（亮度随交互变化） ──────────────────────
+  for(const obj of constellationObjects){
+    const def=obj.def;
+    const isActive=activeDef===def;
+    const isHovering=activatingDef===def;
+    const isDisc=def.discovered;
+
+    // 目标透明度
+    let targetOp=(isDisc&&!isActive)?.55:isActive?.9:isHovering?.65:.35;
+    let lineTarget=isActive?.55:isHovering?.35:isDisc?.3:.15;
+    let glowTarget=isActive?.2:isHovering?.12:isDisc?.1:.06;
+
+    // 平滑过渡
+    const spd=dt*3;
+    obj.starPoints.userData.opacity+=(targetOp-obj.starPoints.userData.opacity)*spd;
+    obj.glowMesh.userData.opacity+=(glowTarget-obj.glowMesh.userData.opacity)*spd;
+
+    obj.sMat.opacity=obj.starPoints.userData.opacity;
+    obj.glowMesh.material.uniforms.uOpacity.value=obj.glowMesh.userData.opacity;
+
+    // Aldebaran 特殊：金牛座主星用暖色
+    if(def.id==='taurus'&&isDisc){
+      obj.sSizes[0]=.18+Math.sin(t*3)*.03; // Aldebaran 呼吸
+    }
+
+    // 连线整体
+    const lineTargetOp=lineTarget;
+    for(const line of obj.lineGroup.children){
+      line.userData.opacity+=(lineTargetOp-line.userData.opacity)*spd;
+      line.material.opacity=line.userData.opacity;
+    }
+
+    // 激活时微小的呼吸缩放
+    if(isActive){
+      const breathe=1+Math.sin(t*2.5)*.02;
+      obj.starPoints.scale.setScalar(breathe);
+      obj.lineGroup.scale.setScalar(breathe);
     }
   }
 
-  // ── 星座形成动画 ──────────────────────────────────────
-  if (state === State.FORMING && formAnim) {
-    formAnim.progress += dt / C.formationDuration;
-
-    if (formAnim.progress >= 1) {
-      formAnim.progress = 1;
-      // 形成完成
-      state = State.SHOWING;
-      stateTimer = 0;
-
-      const def = formAnim.def;
-      def.discovered = true;
-      activeConstellation = def;
-      updateCounter();
-
-      // 显示文案
-      showConstellationText(def, def.screenPos.y);
-
-      // 连接线完全显示
-      formAnim.lineObj.material.opacity = 0.7;
+  // ── 终章动画 ──────────────────────────────────────────
+  if(finaleTriggered){
+    const ft=t-finaleStart;
+    if(finalePhase===0){
+      // 等待0.8秒
+      if(ft>.8){finalePhase=1;finaleStart=t;}
     }
-
-    const t = easeOutBack(Math.min(1, formAnim.progress));
-    const def = formAnim.def;
-
-    for (let j = 0; j < formAnim.particles.length; j++) {
-      const pi = formAnim.particles[j];
-      const pi3 = pi * 3;
-      const j3 = j * 3;
-      starPositions[pi3] = formAnim.startPos[j3] + (formAnim.targetPos[j3] - formAnim.startPos[j3]) * t;
-      starPositions[pi3 + 1] = formAnim.startPos[j3 + 1] + (formAnim.targetPos[j3 + 1] - formAnim.startPos[j3 + 1]) * t;
-      starPositions[pi3 + 2] = formAnim.startPos[j3 + 2] + (formAnim.targetPos[j3 + 2] - formAnim.startPos[j3 + 2]) * t;
-    }
-    starGeom.attributes.position.needsUpdate = true;
-
-    // 渐变连接线不透明度
-    formAnim.lineObj.material.opacity = 0.7 * Math.max(0, (formAnim.progress - 0.3) / 0.7);
-  }
-
-  // ── 星座展示 ──────────────────────────────────────────
-  if (state === State.SHOWING) {
-    // 保持星座形状
-    if (formAnim) {
-      for (let j = 0; j < formAnim.particles.length; j++) {
-        const pi = formAnim.particles[j];
-        const pi3 = pi * 3;
-        const j3 = j * 3;
-        // 微小呼吸效果
-        const breathe = 1 + Math.sin(time * 1.5) * 0.015;
-        starPositions[pi3] = formAnim.targetPos[j3] * breathe + formAnim.def.worldPos.x * (1 - breathe);
-        starPositions[pi3 + 1] = formAnim.targetPos[j3 + 1] * breathe + formAnim.def.worldPos.y * (1 - breathe);
-        starPositions[pi3 + 2] = formAnim.targetPos[j3 + 2];
+    if(finalePhase===1){
+      // 阶段1: 所有主星向中心汇聚 (2s)
+      const p=Math.min(1,ft/2.5);
+      for(let i=0;i<mainCount;i++){
+        const i3=i*3;
+        const cx=0,cy=0,cz=-.5;
+        const angle=i*.02+ft*2;
+        const spiralR=(1-p)*4;
+        const tx=cx+Math.cos(angle)*spiralR;
+        const ty=cy+Math.sin(angle)*spiralR;
+        const tz=cz+(1-p)*3;
+        mainPos[i3]+=(tx-mainPos[i3])*.04;
+        mainPos[i3+1]+=(ty-mainPos[i3+1])*.04;
+        mainPos[i3+2]+=(tz-mainPos[i3+2])*.04;
       }
-      starGeom.attributes.position.needsUpdate = true;
+      mainGeom.attributes.position.needsUpdate=true;
+      bloom.strength=1.2+p*.8;
+      if(p>=1){finalePhase=2;finaleStart=t;}
     }
-
-    // 超时或用户离开 → 溶解
-    const dx = mouseActive
-      ? mouseNDC.x * window.innerWidth / 2 - (activeConstellation.screenPos.x - window.innerWidth / 2)
-      : 0;
-    const dy = mouseActive
-      ? mouseNDC.y * window.innerHeight / 2 - (activeConstellation.screenPos.y - window.innerHeight / 2)
-      : 0;
-    const cursorDist = Math.sqrt(dx * dx + dy * dy);
-
-    const shouldDissolve =
-      stateTimer > C.displayDuration ||
-      (mouseActive && cursorDist > C.gravityRadius * 2.5 && stateTimer > 3);
-
-    if (shouldDissolve) {
-      // 溶解星座
-      hideConstellationText();
-
-      if (formAnim) {
-        formAnim.lineObj.material.opacity = 0;
-        setTimeout(() => {
-          constellationLines.remove(formAnim.lineObj);
-          formAnim.lineObj.geometry.dispose();
-          formAnim.lineObj.material.dispose();
-        }, 500);
+    if(finalePhase===2){
+      // 阶段2: 中心旋转 (1s)
+      const p=Math.min(1,ft/1.2);
+      for(let i=0;i<mainCount;i++){
+        const i3=i*3;
+        const angle=i*.03+ft*3;
+        const r=.25*(1-p*.7);
+        mainPos[i3]=Math.cos(angle)*r;
+        mainPos[i3+1]=Math.sin(angle)*r;
+        mainPos[i3+2]=Math.sin(i*.1+ft)*.1;
       }
-
-      formAnim = null;
-      activeConstellation = null;
-      state = mouseActive ? State.EXPLORING : State.IDLE;
-      stateTimer = 0;
-
-      // 检查是否全部发现
-      const allFound = constellationDefs.every(d => d.discovered);
-      if (allFound && !finaleTriggered) {
-        finaleTriggered = true;
-        // 短暂延迟后触发终章
-        setTimeout(() => triggerFinale(), 1500);
+      mainGeom.attributes.position.needsUpdate=true;
+      if(p>=1){finalePhase=3;finaleStart=t;}
+    }
+    if(finalePhase===3){
+      // 阶段3: 爆发 (.6s)
+      const p=Math.min(1,ft/.6);
+      for(let i=0;i<mainCount;i++){
+        const i3=i*3;
+        const angle=i*.04;
+        const burstR=p*3;
+        mainPos[i3]=Math.cos(angle)*burstR;
+        mainPos[i3+1]=Math.sin(angle)*burstR;
+        mainPos[i3+2]=(Math.random()-.5)*burstR*1.5;
+      }
+      mainGeom.attributes.position.needsUpdate=true;
+      if(p>=1){finalePhase=4;finaleStart=t;}
+    }
+    if(finalePhase===4){
+      // 阶段4: 化作文字 (3s)
+      const p=Math.min(1,ft/3.5);
+      const eased=1-Math.pow(1-p,3); // easeOutCubic
+      // 用canvas渲染文字
+      if(!finaleEl._textTargets){
+        const c2=document.createElement('canvas');
+        c2.width=1024;c2.height=350;
+        const ctx=c2.getContext('2d');
+        ctx.fillStyle='#ffffff';
+        ctx.font='bold 80px "Noto Serif SC","STSong","KaiTi",serif';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        const msg=C.finaleTitle.replace('{name}',C.herName);
+        ctx.fillText(msg,c2.width/2,c2.height/2);
+        const img=c2.getImageData(0,0,c2.width,c2.height);
+        const bright=[];
+        for(let y=0;y<c2.height;y+=2){
+          for(let x=0;x<c2.width;x+=2){
+            if(img.data[(y*c2.width+x)*4+3]>80){
+              bright.push({
+                x:(x-c2.width/2)/c2.width*6,
+                y:-(y-c2.height/2)/c2.height*3.5,
+              });
+            }
+          }
+        }
+        // 为每个主星分配目标
+        finaleEl._textTargets=[];
+        for(let i=0;i<mainCount;i++){
+          const bp=bright[Math.floor(Math.random()*bright.length)];
+          finaleEl._textTargets.push(bp||{x:0,y:0});
+        }
+      }
+      const targets=finaleEl._textTargets;
+      for(let i=0;i<mainCount;i++){
+        const i3=i*3;
+        const tgt=targets[i];
+        const cx=0,cy=0,cz=-.5;
+        const tx=tgt.x,ty=tgt.y,tz=0;
+        mainPos[i3]=cx+(tx-cx)*eased;
+        mainPos[i3+1]=cy+(ty-cy)*eased;
+        mainPos[i3+2]=cz+(tz-cz)*eased;
+      }
+      mainGeom.attributes.position.needsUpdate=true;
+      bloom.strength=1.8+(1-eased)*.5;
+      if(p>=1){finalePhase=5;finaleStart=t;}
+      // 显示终章文字
+      if(p>.5&&!finaleEl.classList.contains('on')){
+        finaleEl.querySelector('h2').textContent=processText(C.finaleTitle);
+        finaleEl.querySelector('p').textContent=processText(C.finaleSub);
+        finaleEl.classList.add('on');
       }
     }
-  }
-
-  // ── 终章彩蛋 ──────────────────────────────────────────
-  if (state === State.FINALE) {
-    // 终章动画由 triggerFinale 驱动
-  }
-
-  // ── Hint 管理 ─────────────────────────────────────────
-  if (constellationDefs.some(d => d.discovered) && !hintEl.classList.contains('fading')) {
-    hintEl.classList.add('fading');
+    if(finalePhase===5){
+      // 阶段5: 微微呼吸，永久展示
+      for(let i=0;i<mainCount;i++){
+        const i3=i*3;
+        const tgt=finaleEl._textTargets[i];
+        mainPos[i3]=tgt.x+Math.sin(t*1.5+i*.1)*.015;
+        mainPos[i3+1]=tgt.y+Math.cos(t*1.7+i*.1)*.015;
+        mainPos[i3+2]=Math.sin(t*1.3+i*.05)*.01;
+      }
+      mainGeom.attributes.position.needsUpdate=true;
+      bloom.strength=1.8+Math.sin(t*.5)*.1;
+    }
   }
 
   // ── 相机微动 ──────────────────────────────────────────
-  if (mouseActive && state !== State.FORMING && state !== State.SHOWING && state !== State.FINALE) {
-    const targetX = mouseNDC.x * 0.3;
-    const targetY = mouseNDC.y * 0.2;
-    camera.position.x += (targetX - camera.position.x) * 0.02;
-    camera.position.y += (targetY - camera.position.y) * 0.02;
-    camera.lookAt(0, 0, 0);
-  } else if (!mouseActive && state !== State.FORMING && state !== State.SHOWING && state !== State.FINALE) {
-    camera.position.x += (0 - camera.position.x) * 0.005;
-    camera.position.y += (0 - camera.position.y) * 0.005;
-    camera.lookAt(0, 0, 0);
+  if(mouseActive&&!finaleTriggered){
+    const tx=mouseNDC.x*.35,ty=mouseNDC.y*.2;
+    camera.position.x+=(tx-camera.position.x)*.025;
+    camera.position.y+=(ty-camera.position.y)*.025;
+  }else if(!finaleTriggered){
+    camera.position.x+=(-camera.position.x)*.004;
+    camera.position.y+=(-camera.position.y)*.004;
   }
+  camera.lookAt(0,0,0);
 
   // ── 渲染 ──────────────────────────────────────────────
   composer.render();
 }
 
-// ============================================================
-// 终章彩蛋
-// ============================================================
-async function triggerFinale() {
-  state = State.FINALE;
-  hintEl.classList.add('fading');
-  hideConstellationText();
+function processText(s){return s.replace(/\{name\}/g,C.herName);}
 
-  if (formAnim) {
-    constellationLines.remove(formAnim.lineObj);
-    formAnim.lineObj.geometry.dispose();
-    formAnim.lineObj.material.dispose();
-    formAnim = null;
-  }
-  activeConstellation = null;
-
-  // 生成文字粒子目标
-  const msg = processText(C.finaleMessage);
-  const textTargets = textToPositions(msg, 90, PARTICLE_COUNT);
-
-  // 存储所有粒子当前位置
-  const startPos = new Float32Array(PARTICLE_COUNT * 3);
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const i3 = i * 3;
-    startPos[i3] = starPositions[i3];
-    startPos[i3 + 1] = starPositions[i3 + 1];
-    startPos[i3 + 2] = starPositions[i3 + 2];
-  }
-
-  // 终章动画参数
-  let finaleProgress = 0;
-  const FINALE_DURATION = 4.5; // 总时长
-  const FINALE_START = performance.now() / 1000;
-
-  function finaleStep(now) {
-    if (state !== State.FINALE) return;
-
-    const elapsed = now - FINALE_START;
-    finaleProgress = Math.min(1, elapsed / FINALE_DURATION);
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const i3 = i * 3;
-      const target = textTargets[i] || textTargets[i % textTargets.length];
-
-      let t;
-      if (finaleProgress < 0.3) {
-        // 阶段1：所有粒子汇聚到中心（带旋转）
-        const p = finaleProgress / 0.3;
-        t = easeInOutCubic(p);
-        const cx = 0, cy = 0, cz = 0;
-        const spiralAngle = p * Math.PI * 4;
-        const spiralR = (1 - p) * 3;
-        const midX = cx + Math.cos(spiralAngle + i * 0.1) * spiralR;
-        const midY = cy + Math.sin(spiralAngle + i * 0.1) * spiralR;
-        const midZ = cz + (1 - p) * 2;
-
-        starPositions[i3] = startPos[i3] + (midX - startPos[i3]) * t;
-        starPositions[i3 + 1] = startPos[i3 + 1] + (midY - startPos[i3 + 1]) * t;
-        starPositions[i3 + 2] = startPos[i3 + 2] + (midZ - startPos[i3 + 2]) * t;
-      } else if (finaleProgress < 0.5) {
-        // 阶段2：中心旋转
-        const p = (finaleProgress - 0.3) / 0.2;
-        const angle = p * Math.PI * 2 + i * 0.05;
-        const r = 0.3 * (1 - p);
-        starPositions[i3] = Math.cos(angle) * r;
-        starPositions[i3 + 1] = Math.sin(angle) * r;
-        starPositions[i3 + 2] = 0;
-      } else if (finaleProgress < 0.55) {
-        // 阶段3：短暂爆发
-        const p = (finaleProgress - 0.5) / 0.05;
-        const burstR = p * 2;
-        const angle = i * 0.3;
-        starPositions[i3] = Math.cos(angle) * burstR;
-        starPositions[i3 + 1] = Math.sin(angle) * burstR;
-        starPositions[i3 + 2] = (Math.random() - 0.5) * burstR;
-      } else {
-        // 阶段4：飞向文字位置
-        const p = Math.min(1, (finaleProgress - 0.55) / 0.45);
-        t = easeOutBack(p);
-        starPositions[i3] = (0 + (target.x - 0)) * t;
-        starPositions[i3 + 1] = (0 + (target.y - 0)) * t;
-        starPositions[i3 + 2] = (0 + (0 - 0)) * t;
-      }
-    }
-
-    starGeom.attributes.position.needsUpdate = true;
-
-    // 辉光随终章进度增强
-    bloomPass.strength = C.bloomStrength + finaleProgress * 1.2;
-
-    // 显示终章文案
-    if (finaleProgress > 0.6 && !finaleOverlay.classList.contains('visible')) {
-      finaleMsg.textContent = processText(C.finaleMessage);
-      finaleSub.textContent = C.finaleSubtitle;
-      finaleOverlay.classList.add('visible');
-    }
-
-    if (finaleProgress < 1) {
-      requestAnimationFrame(finaleStep);
-    }
-  }
-
-  requestAnimationFrame(finaleStep);
-}
-
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 // 启动
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 requestAnimationFrame(animate);
 
-// 初始无交互倒计时
-setTimeout(() => {
-  if (!constellationDefs.some(d => d.discovered) && state === State.IDLE) {
-    hintEl.classList.remove('fading');
-  }
-}, 2000);
+// 初始提示
+setTimeout(()=>{
+  if(!constellationDefs.some(d=>d.discovered))hintEl.classList.remove('hide');
+},2500);
 
-console.log('%c🌌 星河漫游 · Star River Wander %c已就绪',
-  'font-size: 1.2em; color: #ffd700;',
-  'color: #aaa;');
-console.log('%c滑动屏幕探索星空，发现隐藏的星座 💫', 'color: #888;');
+console.log('%c🌌 星河漫游 %c已就绪 — 水瓶座 ♒ × 金牛座 ♉',
+  'font-size:1.2em;color:#ffd700;','color:#aaa;');
 </script>
 </body>
 </html>
