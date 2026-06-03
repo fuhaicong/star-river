@@ -855,9 +855,9 @@ function animate(ts){
     // ── 状态机 ──────────────────────────────────────────
     if(flowState==='wandering'){
       hintEl.classList.remove('hide');
-      hintEl.textContent='滑动手指 · 画出流星';
-      // 交互够久后，第一个星座淡入
-      if(totalInteractionTime>1.5){
+      hintEl.textContent='点击屏幕 · 开启星河';
+      // 点击/触摸即触发
+      if(totalInteractionTime>0.3){
         flowState='firstFading';flowTimer=0;
       }
     }
@@ -886,8 +886,8 @@ function animate(ts){
 
     if(flowState==='secondAwaiting'){
       hintEl.classList.remove('hide');
-      hintEl.textContent='出现了另一颗星，试试穿过她 ✦';
-      if(mouseActive&&dists[taurus.id]<400){
+      hintEl.textContent='点击屏幕 · 点亮第二颗星 ✦';
+      if(mouseActive){
         taurus.discovered=true;activeDef=taurus;activeShowTimer=0;
         updateStatus();showText(taurus);
         flowState='done';flowTimer=0;
@@ -910,7 +910,7 @@ function animate(ts){
     // 如果没在交互且 wander 超时，提示
     if(flowState==='wandering'&&timeSinceInteraction>8&&!mouseActive){
       hintEl.classList.remove('hide');
-      hintEl.textContent='滑动手指 · 画出流星';
+      hintEl.textContent='点击屏幕 · 开启星河';
     }
   }
 
@@ -1113,7 +1113,7 @@ requestAnimationFrame(animate);
 
 // 初始提示：wandering 状态
 hintEl.classList.remove('hide');
-hintEl.textContent='滑动手指 · 画出流星';
+hintEl.textContent='点击屏幕 · 开启星河';
 
 console.log('%c🌌 星河漫游 %c已就绪 — 画出流星，遇见星座',
   'font-size:1.2em;color:#ffd700;','color:#aaa;');
