@@ -787,7 +787,7 @@ function animate(ts){
     for(let s=0;s<segments;s++){
       const p0=trailPts[s],p1=trailPts[s+1];
       const t=s/Math.max(1,segments-1); // 0→1
-      const w=.08+t*t*.5; // 尾部细→头部粗
+      const w=.008+t*t*.12; // 尾部细→头部粗
       const dx=p1.x-p0.x,dy=p1.y-p0.y;
       const dl=Math.sqrt(dx*dx+dy*dy)+.001;
       const px=-dy/dl*w,py=dx/dl*w;
@@ -857,7 +857,7 @@ function animate(ts){
       hintEl.classList.remove('hide');
       hintEl.textContent='滑动手指 · 画出流星';
       // 交互够久后，第一个星座淡入
-      if(totalInteractionTime>5&&mouseActive){
+      if(totalInteractionTime>3&&mouseActive){
         flowState='firstFading';flowTimer=0;
       }
     }
