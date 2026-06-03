@@ -863,6 +863,7 @@ function animate(ts){
     }
 
     if(flowState==='firstFading'){
+      hintEl.classList.remove('hide');
       hintEl.textContent='好像有什么在浮现…';
       if(flowTimer>2.0){flowState='firstDone';flowTimer=0;
         aquarius.discovered=true;activeDef=aquarius;activeShowTimer=0;
@@ -880,7 +881,8 @@ function animate(ts){
     }
 
     if(flowState==='secondFading'){
-      // 2s后进入等待
+      hintEl.classList.remove('hide');
+      hintEl.textContent='好像又出现了什么…';
       if(flowTimer>2.5){flowState='secondAwaiting';flowTimer=0;}
     }
 
