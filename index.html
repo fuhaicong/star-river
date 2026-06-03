@@ -985,40 +985,32 @@ function animate(ts){
     }
   }
 
-  // ── 终章动画：打碎 → 爱心 ──────────────────────────────
+  // ── 终章动画：打碎 → 爱心（连续时间线，无阶段跳跃） ──────
   if(finaleTriggered){
     const ft=t-finaleStart;
-    // 懒加载爱心目标（只在终章触发时生成一次）
+
+    // 懒加载爱心目标
     if(!finaleEl._heartTargets){
-      // 生成爱心形状的粒子目标
       const hTargets=[];
-      // 爱心参数方程: x=16sin³t, y=13cost-5cos2t-2cos3t-cos4t
-      const outline=[];
-      const outlineN=400;
+      const outline=[],outlineN=400;
       for(let i=0;i<outlineN;i++){
         const a=(i/outlineN)*Math.PI*2;
         const sx=16*Math.pow(Math.sin(a),3);
         const sy=13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a);
         outline.push({x:sx*.11,y:sy*.11});
       }
-      // 隐式爱心方程填内部: (x²+y²-1)³ - x²y³ ≤ 0
-      function insideHeart(x,y,s){
-        const X=x/s,Y=y/s;
-        return Math.pow(X*X+Y*Y-1,3)-X*X*Y*Y*Y<=0;
-      }
       const scale=1.5;
       for(let i=0;i<mainCount;i++){
-        let px,py,inside;
+        let px,py;
         if(i<outlineN){
-          // 前400个粒子放轮廓
           px=outline[i].x;py=outline[i].y;
         }else{
-          // 其余粒子用 rejection sampling 填充内部
-          let tries=0;
+          let tries=0,inside;
           do{
             px=(Math.random()-.5)*4.0;
             py=(Math.random()-.5)*4.4+0.3;
-            inside=insideHeart(px,py,scale);
+            const X=px/scale,Y=py/scale;
+            inside=Math.pow(X*X+Y*Y-1,3)-X*X*Y*Y*Y<=0;
             tries++;
           }while(!inside&&tries<50);
           if(!inside){px=outline[i%outlineN].x;py=outline[i%outlineN].y;}
@@ -1026,103 +1018,81 @@ function animate(ts){
         hTargets.push({x:px,y:py});
       }
       finaleEl._heartTargets=hTargets;
+      // 预计算每个粒子的确定性随机值
+      finaleEl._rand1=[];finaleEl._rand2=[];
+      for(let i=0;i<mainCount;i++){
+        finaleEl._rand1.push(((Math.sin(i*127.1+50)*43758.5453)%1+.5));
+        finaleEl._rand2.push(((Math.sin(i*311.7+80)*43758.5453)%1+.5));
+      }
     }
     const heartTgts=finaleEl._heartTargets;
+    const r1=finaleEl._rand1,r2=finaleEl._rand2;
 
-    if(finalePhase===0){
-      if(ft>.5){finalePhase=1;finaleStart=t;}
-    }
-    if(finalePhase===1){
-      // 阶段1: 螺旋汇聚到中心 (1.5s)
-      const p=Math.min(1,ft/1.8);
-      const e=1-Math.pow(1-p,3);
+    // 连续时间线（秒）：pause | converge | spin | explode | form | breathe
+    const T0=.5,T1=T0+1.8,T2=T1+.7,T3=T2+.55,T4=T3+3.2;
+
+    if(ft<T0){
+      // 短暂停顿
+    }else if(ft<T1){
+      // 阶段1: 螺旋汇聚
+      const p=(ft-T0)/(T1-T0),e=1-Math.pow(1-p,3);
       for(let i=0;i<mainCount;i++){
-        const i3=i*3;
-        const a=i*.017+ft*3;
-        const R=(1-e)*4.5;
-        const tx=Math.cos(a)*R,ty=Math.sin(a)*R,tz=(1-e)*3;
-        mainPos[i3]+=(tx-mainPos[i3])*.06;
-        mainPos[i3+1]+=(ty-mainPos[i3+1])*.06;
-        mainPos[i3+2]+=(tz-mainPos[i3+2])*.06;
+        const i3=i*3,a=i*.017+ft*3,R=(1-e)*4.5;
+        mainPos[i3]+=(Math.cos(a)*R-mainPos[i3])*.06;
+        mainPos[i3+1]+=(Math.sin(a)*R-mainPos[i3+1])*.06;
+        mainPos[i3+2]+=((1-e)*3-mainPos[i3+2])*.06;
       }
       mainGeom.attributes.position.needsUpdate=true;
       bloom.strength=1.3+e*.8;
-      if(p>=1){finalePhase=2;finaleStart=t;}
-    }
-    if(finalePhase===2){
-      // 阶段2: 中心高速旋转蓄力 (0.6s)
-      const p=Math.min(1,ft/.7);
+    }else if(ft<T2){
+      // 阶段2: 中心旋转蓄力
+      const p=(ft-T1)/(T2-T1);
       for(let i=0;i<mainCount;i++){
-        const i3=i*3;
-        const a=i*.025+ft*6;
-        const r=.18*Math.max(0,1-p*.8);
-        mainPos[i3]=Math.cos(a)*r+Math.sin(ft*10+i)*.02;
-        mainPos[i3+1]=Math.sin(a)*r+Math.cos(ft*11+i)*.02;
-        mainPos[i3+2]=Math.sin(i*.1+ft*8)*.04;
+        const i3=i*3,a=i*.025+ft*6,r=.18*Math.max(.01,1-p*.85);
+        mainPos[i3]=Math.cos(a)*r+Math.sin(ft*10+i)*.015;
+        mainPos[i3+1]=Math.sin(a)*r+Math.cos(ft*11+i)*.015;
+        mainPos[i3+2]=Math.sin(i*.1+ft*8)*.03;
       }
       mainGeom.attributes.position.needsUpdate=true;
       bloom.strength=2.0+p*.8;
-      if(p>=1){finalePhase=3;finaleStart=t;}
-    }
-    if(finalePhase===3){
-      // 阶段3: 爆炸！(.5s)
-      const p=Math.min(1,ft/.55);
+    }else if(ft<T3){
+      // 阶段3: 爆炸！（确定性随机，不抖动）
+      const p=(ft-T2)/(T3-T2);
       for(let i=0;i<mainCount;i++){
-        const i3=i*3;
-        const a=i*.035;
-        const R=p*5;
-        mainPos[i3]=Math.cos(a)*R*(.8+Math.random()*.4);
-        mainPos[i3+1]=Math.sin(a)*R*(.8+Math.random()*.4);
-        mainPos[i3+2]=(Math.random()-.5)*R*1.8;
+        const i3=i*3,a=i*.035,R=p*5;
+        mainPos[i3]=Math.cos(a)*R*r1[i];
+        mainPos[i3+1]=Math.sin(a)*R*r2[i];
+        mainPos[i3+2]=(r1[i]-.75)*R*1.5;
       }
       mainGeom.attributes.position.needsUpdate=true;
       bloom.strength=2.5-p*.5;
-      if(p>=1){finalePhase=4;finaleStart=t;}
-    }
-    if(finalePhase===4){
-      // 阶段4: 粒子飞向爱心形状 (3s)
-      const p=Math.min(1,ft/3.2);
-      const e=1-Math.pow(1-p,2.5); // easeOut
+    }else if(ft<T4){
+      // 阶段4: 飞向爱心
+      const p=(ft-T3)/(T4-T3);
       for(let i=0;i<mainCount;i++){
-        const i3=i*3;
-        const tgt=heartTgts[i];
-        // 从爆炸位置 lerp 到爱心位置
-        const sx=mainPos[i3],sy=mainPos[i3+1],sz=mainPos[i3+2];
-        const tx=tgt.x,ty=tgt.y,tz=0;
-        mainPos[i3]=sx+(tx-sx)*e*.15+tx*(1-(1-e)*.15); // 混合逼近
-        mainPos[i3+1]=sy+(ty-sy)*e*.15+ty*(1-(1-e)*.15);
-        mainPos[i3+2]=sz+(tz-sz)*e*.15+tz*(1-(1-e)*.15);
-        // 简化: 直接用大力 lerp
-        mainPos[i3]+=(tx-mainPos[i3])*.06;
-        mainPos[i3+1]+=(ty-mainPos[i3+1])*.06;
-        mainPos[i3+2]+=(tz-mainPos[i3+2])*.06;
+        const i3=i*3,tgt=heartTgts[i];
+        mainPos[i3]+=(tgt.x-mainPos[i3])*.05;
+        mainPos[i3+1]+=(tgt.y-mainPos[i3+1])*.05;
+        mainPos[i3+2]+=(0-mainPos[i3+2])*.05;
       }
       mainGeom.attributes.position.needsUpdate=true;
-      bloom.strength=1.6+.4*(1-e);
-      // 爱心快形成时显示文字
-      if(p>.6&&!finaleEl.classList.contains('on')){
+      bloom.strength=1.6+.4*(1-p);
+      if(p>.5&&!finaleEl.classList.contains('on')){
         finaleEl.querySelector('h2').textContent=processText(C.finaleTitle);
         finaleEl.querySelector('p').textContent=processText(C.finaleSub);
         finaleEl.classList.add('on');
       }
-      if(p>=1){finalePhase=5;finaleStart=t;}
-    }
-    if(finalePhase===5){
+    }else{
       // 阶段5: 爱心呼吸（永久）
       const breathe=1+Math.sin(t*2.2)*.03;
       for(let i=0;i<mainCount;i++){
-        const i3=i*3;
-        const tgt=heartTgts[i];
+        const i3=i*3,tgt=heartTgts[i];
         mainPos[i3]=tgt.x*breathe+Math.sin(t*1.8+i*.07)*.012;
         mainPos[i3+1]=tgt.y*breathe+Math.cos(t*2.0+i*.06)*.012;
         mainPos[i3+2]=Math.sin(t*1.5+i*.04)*.008;
       }
       mainGeom.attributes.position.needsUpdate=true;
       bloom.strength=1.7+Math.sin(t*.6)*.12;
-      // 相机轻轻拉远看爱心全景
-      if(!finaleEl._camReset){
-        finaleEl._camReset=true;
-      }
       camera.position.x+=(-camera.position.x)*.015;
       camera.position.y+=(-camera.position.y)*.015;
     }
