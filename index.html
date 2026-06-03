@@ -870,7 +870,7 @@ function animate(ts){
 
     if(flowState==='firstAwaiting'){
       hintEl.classList.remove('hide');
-      hintEl.textContent='向那颗星靠近 ✦';
+      hintEl.textContent='滑动手指，向那颗星靠近 ✦';
       if(mouseActive&&dists[aquarius.id]<400){
         aquarius.discovered=true;activeDef=aquarius;activeShowTimer=0;
         updateStatus();showText(aquarius);
