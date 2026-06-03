@@ -871,8 +871,8 @@ function animate(ts){
     if(flowState==='firstAwaiting'){
       hintEl.classList.remove('hide');
       hintEl.textContent='向那颗星靠近 ✦';
-      // 鼠标穿过（进入范围）
-      if(mouseActive&&dists[aquarius.id]<250){
+      // 向它滑动即可触发
+      if(mouseActive&&dists[aquarius.id]<400){
         aquarius.discovered=true;activeDef=aquarius;activeShowTimer=0;
         updateStatus();showText(aquarius);
         flowState='firstDone';flowTimer=0;
@@ -896,7 +896,7 @@ function animate(ts){
     if(flowState==='secondAwaiting'){
       hintEl.classList.remove('hide');
       hintEl.textContent='出现了另一颗星，试试穿过她 ✦';
-      if(mouseActive&&dists[taurus.id]<250){
+      if(mouseActive&&dists[taurus.id]<400){
         taurus.discovered=true;activeDef=taurus;activeShowTimer=0;
         updateStatus();showText(taurus);
         flowState='done';flowTimer=0;
