@@ -872,7 +872,7 @@ function animate(ts){
 
     if(flowState==='firstAwaiting'){
       hintEl.classList.remove('hide');
-      hintEl.textContent='滑动手指，向那颗星靠近 ✦';
+      hintEl.textContent='滑动手指，向那个星座靠近 ✦';
       if(mouseActive&&dists[aquarius.id]<400){
         aquarius.discovered=true;activeDef=aquarius;activeShowTimer=0;
         updateStatus();showText(aquarius);
@@ -897,7 +897,7 @@ function animate(ts){
 
     if(flowState==='secondAwaiting'){
       hintEl.classList.remove('hide');
-      hintEl.textContent='出现了另一颗星，试试穿过她 ✦';
+      hintEl.textContent='出现了另一个星座，试试穿过她 ✦';
       if(mouseActive&&dists[taurus.id]<400){
         taurus.discovered=true;activeDef=taurus;activeShowTimer=0;
         updateStatus();showText(taurus);
