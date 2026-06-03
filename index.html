@@ -682,7 +682,7 @@ let lastInteraction=0;
 let totalInteractionTime=0;    // 累计交互时长
 
 // 引导流程状态机
-// wandering → firstFading → firstDone → secondFading → secondAwaiting → finale
+// wandering → firstFading → firstAwaiting → firstDone → secondFading → secondAwaiting → finale
 let flowState='wandering';
 let flowTimer=0;
 let activeDef=null;           // 当前展示文案的星座
@@ -865,9 +865,16 @@ function animate(ts){
     if(flowState==='firstFading'){
       hintEl.classList.remove('hide');
       hintEl.textContent='好像有什么在浮现…';
-      if(flowTimer>2.0){flowState='firstDone';flowTimer=0;
+      if(flowTimer>2.0){flowState='firstAwaiting';flowTimer=0;}
+    }
+
+    if(flowState==='firstAwaiting'){
+      hintEl.classList.remove('hide');
+      hintEl.textContent='向那颗星靠近 ✦';
+      if(mouseActive&&dists[aquarius.id]<400){
         aquarius.discovered=true;activeDef=aquarius;activeShowTimer=0;
         updateStatus();showText(aquarius);
+        flowState='firstDone';flowTimer=0;
       }
     }
 
@@ -927,7 +934,7 @@ function animate(ts){
     // 根据流程状态决定可见性
     let visible=false;
     if(isFirst){
-      visible=flowState==='firstFading'||flowState==='firstDone'||isDisc;
+      visible=flowState==='firstFading'||flowState==='firstAwaiting'||flowState==='firstDone'||isDisc;
     }
     if(isSecond){
       visible=flowState==='secondFading'||flowState==='secondAwaiting'||flowState==='done'||isDisc;
@@ -942,7 +949,7 @@ function animate(ts){
 
     // 脉冲（等待穿过时）
     let pulse=1;
-    if(isSecond&&flowState==='secondAwaiting'){
+    if((isFirst&&flowState==='firstAwaiting')||(isSecond&&flowState==='secondAwaiting')){
       pulse=1+.12*Math.sin(t*4.5);
     }
 
