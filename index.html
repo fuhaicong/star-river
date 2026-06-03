@@ -895,7 +895,7 @@ function animate(ts){
 
     if(flowState==='secondAwaiting'){
       hintEl.classList.remove('hide');
-      hintEl.textContent='还剩一颗，穿过它 ✦';
+      hintEl.textContent='出现了另一颗星，试试穿过她 ✦';
       if(mouseActive&&dists[taurus.id]<180){
         taurus.discovered=true;activeDef=taurus;activeShowTimer=0;
         updateStatus();showText(taurus);
