@@ -580,20 +580,17 @@ const ribbonMat=new THREE.ShaderMaterial({
     void main(){
       float t=vUv.x; // 0(尾) -> 1(头)
       // 柔和渐入渐出
-      float alpha=smoothstep(0.0,0.06,t)*smoothstep(1.0,0.75,t);
-      alpha*=0.85;
-      // 颜色：深金尾 → 亮白金色头
-      vec3 tailCol=vec3(0.4,0.15,0.02);
-      vec3 midCol=vec3(0.9,0.55,0.12);
-      vec3 headCol=vec3(1.0,0.95,0.7);
+      float alpha=smoothstep(0.0,0.06,t)*smoothstep(1.0,0.7,t);
+      alpha*=0.9;
+      // 金色流星：尾暗金 → 头亮白
+      vec3 tailCol=vec3(0.5,0.2,0.03);
+      vec3 midCol=vec3(1.0,0.65,0.15);
+      vec3 headCol=vec3(1.0,0.95,0.75);
       vec3 col=mix(tailCol,midCol,smoothstep(0.0,0.35,t));
-      col=mix(col,headCol,smoothstep(0.45,0.85,t));
-      // 增加头部白热
-      col+=vec3(0.4,0.3,0.15)*smoothstep(0.8,1.0,t);
-      // 边缘暗角 (vUv.y: 0=底边, 1=顶边)
-      float edgeFade=1.0-abs(vUv.y-0.5)*1.4;
-      edgeFade=smoothstep(0.0,0.2,edgeFade);
-      alpha*=edgeFade;
+      col=mix(col,headCol,smoothstep(0.4,0.85,t));
+      col+=vec3(0.5,0.35,0.15)*smoothstep(0.75,1.0,t);
+      float edgeFade=1.0-abs(vUv.y-0.5)*1.8;
+      alpha*=smoothstep(0.0,0.25,edgeFade);
       gl_FragColor=vec4(col,alpha);
     }
   `,
@@ -606,7 +603,7 @@ ribbonMesh.frustumCulled=false;
 scene.add(ribbonMesh);
 
 // 光标辉光
-const cursorGlowGeom=new THREE.PlaneGeometry(.6,.6);
+const cursorGlowGeom=new THREE.PlaneGeometry(1.0,1.0);
 const cursorGlowMat=new THREE.ShaderMaterial({
   uniforms:{uColor:{value:new THREE.Color('#fffef0')},uOpacity:{value:0}},
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
@@ -790,7 +787,7 @@ function animate(ts){
     for(let s=0;s<segments;s++){
       const p0=trailPts[s],p1=trailPts[s+1];
       const t=s/Math.max(1,segments-1); // 0→1
-      const w=.03+t*t*.35; // 尾部细→头部粗
+      const w=.08+t*t*.5; // 尾部细→头部粗
       const dx=p1.x-p0.x,dy=p1.y-p0.y;
       const dl=Math.sqrt(dx*dx+dy*dy)+.001;
       const px=-dy/dl*w,py=dx/dl*w;
