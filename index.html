@@ -97,8 +97,8 @@ const C = {
   herName: '小脉',
   herSign: '水瓶座 ♒',
   hisSign: '金牛座 ♉',
-  herText: '你是水瓶座，\n是倾倒星河的水，\n是宇宙最自由的灵魂。',
-  hisText: '而我是金牛座，\n笨拙地守在你身边，\n做你最温柔的引力。',
+  herText: '那天遇见了{name}，\n整个星河都黯然失色。',
+  hisText: '在亿万星辰里，\n{name}是我唯一想遇见的那颗。',
   finaleTitle: '祝 {name} 六一快乐',
   finaleSub: '永远做我的小朋友 ♡',
 };
@@ -444,13 +444,13 @@ const TAURUS_WORLD   = new THREE.Vector3( 1.8, 0.0, -1.5);
 
 const constellationDefs = [
   {
-    id:'aquarius', name:'水瓶座 ♒', text:C.herText.replace('{name}',C.herName),
+    id:'aquarius', name:'初见', text:processText(C.herText),
     stars:AQUARIUS_STARS, lines:AQUARIUS_LINES,
     worldPos:AQUARIUS_WORLD, screenPos:new THREE.Vector2(),
     discovered:false, owner:'her', scale:1.15,
   },
   {
-    id:'taurus', name:'金牛座 ♉', text:C.hisText,
+    id:'taurus', name:'唯一', text:processText(C.hisText),
     stars:TAURUS_STARS, lines:TAURUS_LINES,
     worldPos:TAURUS_WORLD, screenPos:new THREE.Vector2(),
     discovered:false, owner:'him', scale:1.1,
@@ -787,10 +787,18 @@ function animate(ts){
       }
     }
 
-    // 提示
-    if(constellationDefs.some(d=>d.discovered))hintEl.classList.add('hide');
-    else if(timeSinceInteraction>4)hintEl.classList.remove('hide');
-    else if(mouseActive&&trailPts.length>3)hintEl.classList.add('hide');
+    // 引导提示
+    const foundCount=constellationDefs.filter(d=>d.discovered).length;
+    if(foundCount===0){
+      // 还没发现：提示探索
+      if(timeSinceInteraction>4&&!mouseActive)hintEl.classList.remove('hide');
+      else if(mouseActive&&trailPts.length>5)hintEl.classList.add('hide');
+      hintEl.textContent='轻触滑动 · 漫游星河';
+    }else if(foundCount===1){
+      // 发现了一颗：引导找第二颗
+      hintEl.classList.remove('hide');
+      hintEl.textContent='还剩一颗星，再找找看 ✨';
+    }
   }
 
   // ── 星座视觉更新（亮度随交互变化） ──────────────────────
@@ -800,10 +808,12 @@ function animate(ts){
     const isHovering=activatingDef===def;
     const isDisc=def.discovered;
 
-    // 目标透明度
-    let targetOp=(isDisc&&!isActive)?.65:isActive?.95:isHovering?.8:.7;
-    let lineTarget=isActive?.65:isHovering?.5:isDisc?.45:.35;
-    let glowTarget=isActive?.25:isHovering?.18:isDisc?.15:.1;
+    // 目标透明度（考虑引导脉冲）
+    const oneFound=constellationDefs.filter(d=>d.discovered).length===1;
+    const needGuide=oneFound&&!isDisc; // 已发现一颗，这颗还没被发现 → 脉冲引导
+    let targetOp=isActive?.95:isHovering?.85:isDisc?.65:needGuide?(.7+.15*Math.sin(t*4)):.7;
+    let lineTarget=isActive?.65:isHovering?.55:isDisc?.45:needGuide?(.4+.12*Math.sin(t*4)):.35;
+    let glowTarget=isActive?.25:isHovering?.2:isDisc?.15:needGuide?(.12+.06*Math.sin(t*4)):.1;
 
     // 平滑过渡
     const spd=dt*3;
