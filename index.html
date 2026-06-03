@@ -857,7 +857,7 @@ function animate(ts){
       hintEl.classList.remove('hide');
       hintEl.textContent='滑动手指 · 画出流星';
       // 交互够久后，第一个星座淡入
-      if(totalInteractionTime>1.5&&mouseActive){
+      if(totalInteractionTime>1.5){
         flowState='firstFading';flowTimer=0;
       }
     }
