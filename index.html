@@ -439,21 +439,21 @@ function spawnShootingStar(){
 // 星座系统 — 水瓶座 + 金牛座
 // ═══════════════════════════════════════════════════════════
 // 星座在3D空间中的位置
-const AQUARIUS_WORLD = new THREE.Vector3(-2.2, 1.3, -1.2);
-const TAURUS_WORLD   = new THREE.Vector3( 2.2,-1.2, -1.5);
+const AQUARIUS_WORLD = new THREE.Vector3(-1.5, 0.9, -0.5);
+const TAURUS_WORLD   = new THREE.Vector3( 1.5,-0.8, -0.8);
 
 const constellationDefs = [
   {
     id:'aquarius', name:'初见', text:processText(C.herText),
     stars:AQUARIUS_STARS, lines:AQUARIUS_LINES,
     worldPos:AQUARIUS_WORLD, screenPos:new THREE.Vector2(),
-    discovered:false, owner:'her', scale:1.6,
+    discovered:false, owner:'her', scale:isMobile?1.1:1.6,
   },
   {
     id:'taurus', name:'唯一', text:processText(C.hisText),
     stars:TAURUS_STARS, lines:TAURUS_LINES,
     worldPos:TAURUS_WORLD, screenPos:new THREE.Vector2(),
-    discovered:false, owner:'him', scale:1.55,
+    discovered:false, owner:'him', scale:isMobile?1.05:1.55,
   },
 ];
 
