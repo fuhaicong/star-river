@@ -610,7 +610,7 @@ const cursorGlowMat=new THREE.ShaderMaterial({
   uniforms:{uColor:{value:new THREE.Color('#fffef0')},uOpacity:{value:0}},
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
   fragmentShader:`varying vec2 vUv;uniform vec3 uColor;uniform float uOpacity;
-    void main(){float d=length(vUv-.5)*2.;float a=exp(-d*2.5)*uOpacity;gl_FragColor=vec4(uColor,a);}`,
+    void main(){float d=length(vUv-.5)*2.;float a=exp(-d*3.5)*uOpacity*smoothstep(1.05,0.85,d);gl_FragColor=vec4(uColor,a);}`,
   transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
 });
 const cursorGlow=new THREE.Mesh(cursorGlowGeom,cursorGlowMat);
