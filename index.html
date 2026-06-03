@@ -714,6 +714,8 @@ function onUp(){mouseActive=false;}
 
 window.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
 window.addEventListener('touchmove',e=>{e.preventDefault();onMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+window.addEventListener('touchstart',e=>{onMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+window.addEventListener('click',e=>{onMove(e.clientX,e.clientY);});
 window.addEventListener('mouseup',onUp);
 window.addEventListener('touchend',onUp);
 window.addEventListener('touchcancel',onUp);
