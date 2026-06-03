@@ -475,18 +475,19 @@ function createConstellationVisual(def){
     sPos[i*3+1]=cy+s.y*scale;
     sPos[i*3+2]=cz+s.z*scale;
     // 星等越小越亮，映射到尺寸
-    sSizes[i]=.03+.12/Math.max(1,s.mag);
+    sSizes[i]=.06+.18/Math.max(1,s.mag);
   }
   sGeom.setAttribute('position',new THREE.BufferAttribute(sPos,3));
+  sGeom.setAttribute('size',new THREE.BufferAttribute(sSizes,1));
   const isTaurus=def.id==='taurus';
   const sMat=new THREE.PointsMaterial({
     map:isTaurus?warmTex:starTex,
-    size:.12,blending:THREE.AdditiveBlending,depthWrite:false,
-    transparent:true,opacity:.35, // 初始暗淡
-    color:new THREE.Color(isTaurus?'#ffe0c0':'#d0e0ff'),
+    size:.22,blending:THREE.AdditiveBlending,depthWrite:false,
+    transparent:true,opacity:.7,
+    color:new THREE.Color(isTaurus?'#ffcc88':'#aaccff'),
   });
   const starPoints=new THREE.Points(sGeom,sMat);
-  starPoints.userData.opacity=.35;
+  starPoints.userData.opacity=.7;
   scene.add(starPoints);
 
   // 连线
@@ -499,11 +500,11 @@ function createConstellationVisual(def){
     ]);
     const lMat=new THREE.LineBasicMaterial({
       color:isTaurus?0xffcc99:0xaaccff,
-      transparent:true,opacity:.15,
+      transparent:true,opacity:.35,
       blending:THREE.AdditiveBlending,depthWrite:false,
     });
     const line=new THREE.Line(lGeom,lMat);
-    line.userData.opacity=.15;
+    line.userData.opacity=.35;
     lineGroup.add(line);
   }
   scene.add(lineGroup);
@@ -513,7 +514,7 @@ function createConstellationVisual(def){
   const glowMat=new THREE.ShaderMaterial({
     uniforms:{
       uColor:{value:new THREE.Color(isTaurus?'#ff9944':'#4488ff')},
-      uOpacity:{value:.06},
+      uOpacity:{value:.12},
     },
     vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
     fragmentShader:`varying vec2 vUv;uniform vec3 uColor;uniform float uOpacity;
@@ -526,7 +527,7 @@ function createConstellationVisual(def){
   });
   const glowMesh=new THREE.Mesh(glowGeom,glowMat);
   glowMesh.position.copy(def.worldPos);
-  glowMesh.userData.opacity=.06;
+  glowMesh.userData.opacity=.12;
   scene.add(glowMesh);
 
   return {def,starPoints,lineGroup,glowMesh,sPos,sSizes,sMat};
@@ -746,13 +747,13 @@ function animate(ts){
           const dx=mouseNDC.x*W()/2-(def.screenPos.x-W()/2);
           const dy=mouseNDC.y*H()/2-(def.screenPos.y-H()/2);
           const d=Math.sqrt(dx*dx+dy*dy);
-          if(d<180&&d<nearestDist){nearest=def;nearestDist=d;}
+          if(d<280&&d<nearestDist){nearest=def;nearestDist=d;}
         }
       }
-      if(nearest&&nearestDist<140){
+      if(nearest&&nearestDist<220){
         if(activatingDef===nearest){
           activationTimer+=dt;
-          if(activationTimer>1.2){
+          if(activationTimer>0.8){
             // 激活星座！
             nearest.discovered=true;
             activeDef=nearest;
@@ -774,7 +775,7 @@ function animate(ts){
       const dx=mouseActive?mouseNDC.x*W()/2-(activeDef.screenPos.x-W()/2):0;
       const dy=mouseActive?mouseNDC.y*H()/2-(activeDef.screenPos.y-H()/2):0;
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(showTimer>10||(mouseActive&&d>280&&showTimer>2.5)){
+      if(showTimer>12||(mouseActive&&d>350&&showTimer>3)){
         // 淡出
         hideText();
         activeDef=null;showTimer=0;
@@ -800,9 +801,9 @@ function animate(ts){
     const isDisc=def.discovered;
 
     // 目标透明度
-    let targetOp=(isDisc&&!isActive)?.55:isActive?.9:isHovering?.65:.35;
-    let lineTarget=isActive?.55:isHovering?.35:isDisc?.3:.15;
-    let glowTarget=isActive?.2:isHovering?.12:isDisc?.1:.06;
+    let targetOp=(isDisc&&!isActive)?.65:isActive?.95:isHovering?.8:.7;
+    let lineTarget=isActive?.65:isHovering?.5:isDisc?.45:.35;
+    let glowTarget=isActive?.25:isHovering?.18:isDisc?.15:.1;
 
     // 平滑过渡
     const spd=dt*3;
