@@ -738,7 +738,7 @@ function animate(ts){
   const timeSinceInteraction=t-lastInteraction;
 
   if(!finaleTriggered){
-    if(!activeDef&&!activatingDef){
+    if(!activeDef){
       // 检测是否靠近星座
       let nearest=null,nearestDist=Infinity;
       if(mouseActive){
